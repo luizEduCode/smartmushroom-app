@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/screen/home_page.dart';
-import 'package:smartmushroom_app/screen/painelSalas_page.dart';
-import 'package:smartmushroom_app/screen/sala_page.dart';
+import 'package:smartmshroom_app/screen/painelSalas_page.dart';
 
 void main() {
   runApp(const MyApp());

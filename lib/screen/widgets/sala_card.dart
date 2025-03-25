@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/screen/sala_page.dart';
+import 'package:smartmshroom_app/constants.dart';
+import 'package:smartmshroom_app/screen/sala_page.dart';
 
 class SalaCard extends StatelessWidget {
   final String nomeSala;
@@ -11,6 +11,7 @@ class SalaCard extends StatelessWidget {
   final String temperatura;
   final String umidade;
   final String co2;
+  final String status;
 
   const SalaCard({
     super.key,
@@ -22,20 +23,37 @@ class SalaCard extends StatelessWidget {
     required this.temperatura,
     required this.umidade,
     required this.co2,
+    required this.status, // novo parâmetro
   });
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   // return InkWell(
+  //   //   onTap: () {
+  //   //     Navigator.push(
+  //   //       context,
+  //   //       MaterialPageRoute(builder: (context) => SalaPage(nomeSala: nomeSala)),
+  //   //     );
+  //   //   },
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => SalaPage()),
+          MaterialPageRoute(
+            builder:
+                (context) => SalaPage(
+                  nomeSala: nomeSala,
+                  idLote: idLote, // Passando o idLote para a SalaPage
+                ),
+          ),
         );
       },
+
       child: Container(
         decoration: BoxDecoration(
-          color: primaryColor,
+          color: status == 'finalizado' ? Colors.grey : primaryColor,
           borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
         child: Padding(
@@ -72,7 +90,6 @@ class SalaCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.lightbulb, size: 22, color: Colors.white),
                           Icon(Icons.lightbulb, size: 22, color: Colors.white),
                           Icon(Icons.lightbulb, size: 22, color: Colors.white),
                           Icon(Icons.lightbulb, size: 22, color: Colors.white),
@@ -116,7 +133,9 @@ class SalaCard extends StatelessWidget {
                   Column(
                     children: [
                       Text(
-                        '${double.parse(temperatura).toStringAsFixed(0)}°C',
+                        temperatura != '--'
+                            ? '${double.parse(temperatura).toStringAsFixed(0)}°C'
+                            : '--°C',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -136,7 +155,9 @@ class SalaCard extends StatelessWidget {
                   Column(
                     children: [
                       Text(
-                        '${double.parse(umidade).toStringAsFixed(0)}%',
+                        umidade != '--'
+                            ? '${double.parse(umidade).toStringAsFixed(0)}%'
+                            : '--%',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -156,7 +177,9 @@ class SalaCard extends StatelessWidget {
                   Column(
                     children: [
                       Text(
-                        double.parse(co2).toStringAsFixed(0),
+                        co2 != '--'
+                            ? double.parse(co2).toStringAsFixed(0)
+                            : '--',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -175,8 +198,6 @@ class SalaCard extends StatelessWidget {
                   ),
                 ],
               ),
-
-              SizedBox(height: 8),
             ],
           ),
         ),

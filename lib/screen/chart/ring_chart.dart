@@ -1,9 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmshroom_app/constants.dart';
 
 class RingChart extends StatelessWidget {
-  const RingChart({super.key});
+  final String temperatura;
+
+  const RingChart({super.key, required this.temperatura});
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +70,7 @@ class RingChart extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '22°',
+                            '${double.parse(temperatura).toStringAsFixed(0)} °C',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
