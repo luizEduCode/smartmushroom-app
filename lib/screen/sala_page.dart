@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
 import 'package:smartmshroom_app/constants.dart';
-import 'package:smartmshroom_app/screen/chart/Co%C2%B2_linechart.dart';
+import 'package:smartmshroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmshroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmshroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmshroom_app/screen/chart/temperature_linechart.dart';
@@ -122,7 +122,7 @@ class _SalaPageState extends State<SalaPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.15.8/smartmushroom-api/atuadores.php'),
+        Uri.parse('http://192.168.15.8/smartmushroom-api/controle_atuadores.php'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'idAtuador': idAtuador.toString()},
       );

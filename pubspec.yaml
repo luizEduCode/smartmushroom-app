@@ -1,4 +1,4 @@
-name: smartmushroom_app
+name: smartmshroom_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   fl_chart: ^0.70.2
   http: ^1.2.1
+  shared_preferences: ^2.2.2
+  
 
 dev_dependencies:
   flutter_test:
@@ -47,7 +49,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
-
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
