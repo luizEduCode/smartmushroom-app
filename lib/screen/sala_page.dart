@@ -76,7 +76,7 @@ class _SalaPageState extends State<SalaPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://192.168.15.8/smartmushroom-api/nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
+          'http://192.168.15.9/smartmushroom-api/nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
         ),
       );
 
@@ -122,7 +122,7 @@ class _SalaPageState extends State<SalaPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.15.8/smartmushroom-api/controle_atuadores.php'),
+        Uri.parse('http://192.168.15.9/smartmushroom-api/atuadores.php'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'idAtuador': idAtuador.toString()},
       );
@@ -191,7 +191,7 @@ class _SalaPageState extends State<SalaPage> {
                         children: [
                           Expanded(
                             child: RingChart(
-                              temperatura: _dadosSala['temperatura'],
+                              temperatura: _dadosSala['temperatura'] ?? '--',
                             ),
                           ),
                           SizedBox(width: 16),
@@ -223,14 +223,14 @@ class _SalaPageState extends State<SalaPage> {
                         children: [
                           _buildLeituraCard(
                             'Umidade',
-                            _dadosSala['umidade'],
+                            _dadosSala['umidade'] ?? '--',
                             Icons.water_drop_outlined,
                             '%',
                           ),
                           SizedBox(width: 16),
                           _buildLeituraCard(
                             'Nível Co²',
-                            _dadosSala['co2'],
+                            _dadosSala['co2'] ?? '--',
                             Icons.co2,
                             'ppm',
                           ),

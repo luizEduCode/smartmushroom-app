@@ -70,7 +70,10 @@ class RingChart extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '${double.parse(temperatura).toStringAsFixed(0)} °C',
+                            temperatura != '--'
+                                ? '${double.parse(temperatura).toStringAsFixed(0)}°C'
+                                : '--°C',
+                            // '${double.parse(temperatura).toStringAsFixed(0)} °C',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
