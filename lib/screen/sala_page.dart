@@ -310,7 +310,6 @@ class _SalaPageState extends State<SalaPage> {
     );
   }
 
-
   Widget _buildChartSection(String title, Widget chart) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
