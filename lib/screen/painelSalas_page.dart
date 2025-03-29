@@ -37,7 +37,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
   Future<void> fetchSalas() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.15.8/smartmushroom-api/salas.php'),
+        Uri.parse('http://192.168.1.66/smartmushroom-api/salas.php'),
       );
 
       if (response.statusCode == 200) {
@@ -65,7 +65,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
   Future<void> vincularLote(int idSala, int idLote) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.15.8/smartmushroom-api/salas.php'),
+        Uri.parse('http://192.168.1.66/smartmushroom-api/salas.php'),
         body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
       );
 

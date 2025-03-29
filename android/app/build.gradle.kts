@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "br.com.smartmushroom.smartmushroom_app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
