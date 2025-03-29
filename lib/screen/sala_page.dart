@@ -194,7 +194,7 @@ class _SalaPageState extends State<SalaPage> {
                         children: [
                           Expanded(
                             child: RingChart(
-                              temperatura: _dadosSala['temperatura'],
+                              temperatura: _dadosSala['temperatura'] ?? '--',
                             ),
                           ),
                           SizedBox(width: 16),
@@ -310,51 +310,6 @@ class _SalaPageState extends State<SalaPage> {
     );
   }
 
-  Widget _buildLeituraCard(
-    String label,
-    dynamic value,
-    IconData icon,
-    String label1,
-  ) {
-    return Expanded(
-      child: Container(
-        height: 100,
-        decoration: BoxDecoration(
-          color: primaryColor,
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                  Icon(icon, color: Colors.white),
-                ],
-              ),
-              SizedBox(height: 10),
-              Center(
-                child: Text(
-                  '$value $label1',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildChartSection(String title, Widget chart) {
     return Column(
