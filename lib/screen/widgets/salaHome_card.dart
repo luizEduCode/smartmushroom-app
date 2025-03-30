@@ -44,6 +44,7 @@ class SalahomeCard extends StatelessWidget {
           );
         },
         child: Container(
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: status == 'finalizado' ? Colors.grey : primaryColor,
             borderRadius: BorderRadius.all(Radius.circular(20)),
@@ -65,9 +66,7 @@ class SalahomeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                SizedBox(height: defaultPadding),
-
+                SizedBox(height: 14),
                 //Row do cogumelo
                 Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -91,10 +90,10 @@ class SalahomeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: defaultPadding),
+                SizedBox(height: 14),
                 //Row dos parâmetros
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       temperatura != '--'
