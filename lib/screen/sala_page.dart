@@ -8,12 +8,13 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
-import 'package:smartmshroom_app/constants.dart';
-import 'package:smartmshroom_app/screen/chart/bar_indicator.dart';
-import 'package:smartmshroom_app/screen/chart/co2_linechart.dart';
-import 'package:smartmshroom_app/screen/chart/humidity_linechart.dart';
-import 'package:smartmshroom_app/screen/chart/ring_chart.dart';
-import 'package:smartmshroom_app/screen/chart/temperature_linechart.dart';
+import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/cadastroSalas_page.dart';
+import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
+import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
+import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
+import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
+import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
 
 class SalaPage extends StatefulWidget {
   final String nomeSala;
@@ -77,7 +78,7 @@ class _SalaPageState extends State<SalaPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://192.168.1.66/smartmushroom-api/nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
+          'http://192.168.15.7/smartmushroom-api/nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
         ),
       );
 
@@ -124,7 +125,7 @@ class _SalaPageState extends State<SalaPage> {
     try {
       final response = await http.post(
         Uri.parse(
-          'http://192.168.1.66/smartmushroom-api/controle_atuadores.php',
+          'http://192.168.15.7/smartmushroom-api/controle_atuadores.php',
         ),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'idAtuador': idAtuador.toString()},
@@ -167,7 +168,7 @@ class _SalaPageState extends State<SalaPage> {
         foregroundColor: Colors.white,
         title: Text(
           ' ${widget.nomeSala}',
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         actions: [
@@ -279,6 +280,58 @@ class _SalaPageState extends State<SalaPage> {
                         }),
                       ),
                       SizedBox(height: defaultPadding),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            height: 50,
+                            width: MediaQuery.of(context).size.width * 0.45,
+                            decoration: BoxDecoration(
+                              color: secontaryColor,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Parâmetros",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CadastrosalasPage(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 50,
+                              width: MediaQuery.of(context).size.width * 0.45,
+                              decoration: BoxDecoration(
+                                color: secontaryColor,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  "Editar Sala",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: defaultPadding),
                       _buildChartSection('Temperatura', TemperatureLinechart()),
                       SizedBox(height: defaultPadding),
                       _buildChartSection('Umidade', HumidityLinechart()),
@@ -309,7 +362,6 @@ class _SalaPageState extends State<SalaPage> {
       ),
     );
   }
-
 
   Widget _buildChartSection(String title, Widget chart) {
     return Column(
