@@ -272,7 +272,13 @@ class _SalaPageState extends State<SalaPage> {
                               padding: EdgeInsets.all(20),
                             ),
                             onPressed: () async {
-                              await alterarStatusAtuador(idAtuador);
+                              try {
+                                await alterarStatusAtuador(idAtuador);
+                              } catch (e) {
+                                print(
+                                  'Erro ao alterar o status do atuador $idAtuador: $e',
+                                );
+                              }
                             },
                             child: Icon(icon, color: Colors.white, size: 25),
                           );
