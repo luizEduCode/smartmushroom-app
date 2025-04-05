@@ -45,7 +45,7 @@ class BarIndicator extends StatelessWidget {
             Stack(
               children: [
                 Container(
-                  height: 10,
+                  height: 5,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.grey[800],
@@ -53,7 +53,7 @@ class BarIndicator extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  height: 10,
+                  height: 5,
                   width:
                       percentage > 100
                           ? double.infinity

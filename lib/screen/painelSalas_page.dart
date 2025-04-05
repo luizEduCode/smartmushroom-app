@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:smartmshroom_app/screen/widgets/sala_card.dart';
+import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
 
 class PainelsalasPage extends StatefulWidget {
   const PainelsalasPage({super.key});
@@ -36,9 +37,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://192.168.1.66/smartmushroom-api/salas.php'),
-      );
+      final response = await http.get(Uri.parse('${apiBaseUrl}salas.php'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -65,7 +64,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
   Future<void> vincularLote(int idSala, int idLote) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.66/smartmushroom-api/salas.php'),
+        Uri.parse('${apiBaseUrl}salas.php'),
         body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
       );
 
@@ -88,9 +87,16 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Painel de Salas")),
+      appBar: AppBar(
+        title: const Text(
+          "Painel de Salas",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
-        padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+        padding: const EdgeInsets.all(10),
         child: RefreshIndicator(
           onRefresh: fetchSalas,
           child:

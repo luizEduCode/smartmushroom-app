@@ -8,22 +8,20 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
-import 'package:smartmshroom_app/constants.dart';
-import 'package:smartmshroom_app/screen/chart/bar_indicator.dart';
-import 'package:smartmshroom_app/screen/chart/co2_linechart.dart';
-import 'package:smartmshroom_app/screen/chart/humidity_linechart.dart';
-import 'package:smartmshroom_app/screen/chart/ring_chart.dart';
-import 'package:smartmshroom_app/screen/chart/temperature_linechart.dart';
+import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/cadastroSalas_page.dart';
+import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
+import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
+import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
+import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
+import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
+import 'package:smartmushroom_app/screen/sala_page.dart';
 
 class SalaPage extends StatefulWidget {
   final String nomeSala;
-  final String idLote; // Adicionando idLote como parâmetro
+  final String idLote; // Recebe o idLote
 
-  const SalaPage({
-    super.key,
-    required this.nomeSala,
-    required this.idLote, // Recebendo o idLote
-  });
+  const SalaPage({super.key, required this.nomeSala, required this.idLote});
 
   @override
   State<SalaPage> createState() => _SalaPageState();
@@ -33,7 +31,7 @@ class _SalaPageState extends State<SalaPage> {
   late Timer _timer;
   Map<String, dynamic> _dadosSala = {}; // Dados da sala
   bool _isLoading = true;
-  bool _hasError = false;
+  bool _hasFetchError = false; // Indica erro no fetch da sala
   Map<int, bool> _atuadoresStatus = {};
 
   @override
@@ -41,7 +39,7 @@ class _SalaPageState extends State<SalaPage> {
     super.initState();
     _carregarEstadosLocais();
     fetchSala();
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchSala();
     });
   }
@@ -77,7 +75,7 @@ class _SalaPageState extends State<SalaPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://192.168.1.66/smartmushroom-api/nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
+          '${apiBaseUrl}nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
         ),
       );
 
@@ -93,39 +91,36 @@ class _SalaPageState extends State<SalaPage> {
           setState(() {
             _dadosSala = data['sala'][0];
             _isLoading = false;
-            _hasError = false;
+            _hasFetchError = false;
           });
         } else {
           debugPrint('Sala está vazia ou nula');
           setState(() {
-            _hasError = true;
+            _hasFetchError = true;
             _isLoading = false;
           });
         }
       } else {
         debugPrint('Erro: Status Code ${response.statusCode}');
         setState(() {
-          _hasError = true;
+          _hasFetchError = true;
           _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('Exceção ao buscar sala: $e');
       setState(() {
-        _hasError = true;
+        _hasFetchError = true;
         _isLoading = false;
       });
     }
   }
 
-  Future<void> alterarStatusAtuador(int idAtuador) async {
-    setState(() {});
-
+  Future<void> dalterarStatusAtuador(int idAtuador) async {
+    // Atualiza a interface para indicar que algo está acontecendo (opcional)
     try {
       final response = await http.post(
-        Uri.parse(
-          'http://192.168.1.66/smartmushroom-api/controle_atuadores.php',
-        ),
+        Uri.parse('${apiBaseUrl}controle_atuadores.php'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'idAtuador': idAtuador.toString()},
       );
@@ -133,28 +128,34 @@ class _SalaPageState extends State<SalaPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['mensagem'] == 'Status do atuador atualizado com sucesso') {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
+          // Atualiza o status local e salva no SharedPreferences
           setState(() {
             _atuadoresStatus[idAtuador] =
                 !(_atuadoresStatus[idAtuador] ?? false);
-            prefs.setBool('atuador_$idAtuador', _atuadoresStatus[idAtuador]!);
-            _hasError = false;
           });
+          await salvarStatusLocal(idAtuador, _atuadoresStatus[idAtuador]!);
+          // Feedback para o usuário
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Atuador atualizado com sucesso')),
+          );
+        } else {
+          // Se a mensagem não bater, exibe erro
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao atualizar atuador')),
+          );
         }
       } else {
-        setState(() {
-          _hasError = true;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: ${response.statusCode} ao atualizar atuador'),
+          ),
+        );
       }
     } catch (e) {
-      print("Erro ao alterar status: $e");
-      setState(() {
-        _hasError = true;
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      debugPrint("Erro ao alterar status: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
     }
   }
 
@@ -166,8 +167,8 @@ class _SalaPageState extends State<SalaPage> {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         title: Text(
-          ' ${widget.nomeSala}',
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+          widget.nomeSala,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         actions: [
@@ -175,18 +176,18 @@ class _SalaPageState extends State<SalaPage> {
             onPressed: () {
               Navigator.pop(context);
             },
-            icon: Icon(Icons.arrow_back_rounded),
+            icon: const Icon(Icons.arrow_back_rounded),
           ),
         ],
       ),
-      drawer: Drawer(),
-      body: SingleChildScrollView(
-        child:
-            _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _hasError
-                ? Center(child: Text('Erro ao carregar dados.'))
-                : Padding(
+      drawer: const Drawer(),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _hasFetchError
+              ? const Center(child: Text('Erro ao carregar dados.'))
+              : SingleChildScrollView(
+                child: Padding(
                   padding: const EdgeInsets.all(defaultPadding),
                   child: Column(
                     children: [
@@ -197,7 +198,7 @@ class _SalaPageState extends State<SalaPage> {
                               temperatura: _dadosSala['temperatura'] ?? '--',
                             ),
                           ),
-                          SizedBox(width: 16),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,8 +221,7 @@ class _SalaPageState extends State<SalaPage> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 16),
-
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           BarIndicator(
@@ -231,18 +231,17 @@ class _SalaPageState extends State<SalaPage> {
                             valueLabel: _dadosSala['umidade'],
                             color: Colors.blueAccent,
                           ),
-                          SizedBox(width: defaultPadding),
+                          const SizedBox(width: defaultPadding),
                           BarIndicator(
                             label: 'Nível CO²',
                             icon: Icons.cloud_outlined,
-                            percentage: 50, // Ex: 1500ppm de um total de 2000
+                            percentage: 50,
                             valueLabel: _dadosSala['co2'],
                             color: Colors.orangeAccent,
                           ),
                         ],
                       ),
-
-                      SizedBox(height: defaultPadding),
+                      const SizedBox(height: defaultPadding),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: List.generate(4, (index) {
@@ -250,50 +249,96 @@ class _SalaPageState extends State<SalaPage> {
                           bool isAtivo = _atuadoresStatus[idAtuador] ?? false;
                           Color buttonColor =
                               isAtivo
-                                  ? Color.fromARGB(255, 97, 247, 28)
+                                  ? const Color.fromARGB(255, 97, 247, 28)
                                   : secontaryColor;
 
-                          IconData icon;
-                          switch (idAtuador) {
-                            case 1:
-                            case 2:
-                            case 3:
-                            case 4:
-                              icon = Icons.lightbulb;
-                              break;
-                            default:
-                              icon = Icons.device_unknown;
-                          }
+                          IconData icon =
+                              Icons.lightbulb; // Ícone padrão para os atuadores
 
                           return ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: buttonColor,
-                              shape: CircleBorder(),
-                              padding: EdgeInsets.all(20),
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(20),
                             ),
                             onPressed: () async {
-                              try {
-                                await alterarStatusAtuador(idAtuador);
-                              } catch (e) {
-                                print(
-                                  'Erro ao alterar o status do atuador $idAtuador: $e',
-                                );
-                              }
+                              //await //alterarStatusAtuador(idAtuador);
                             },
-                            child: Icon(icon, color: Colors.white, size: 25),
+                            child: const Icon(
+                              Icons.lightbulb,
+                              color: Colors.white,
+                              size: 25,
+                            ),
                           );
                         }),
                       ),
-                      SizedBox(height: defaultPadding),
+                      const SizedBox(height: defaultPadding),
+                      
+                      Row(),
+
+                      const SizedBox(height: defaultPadding),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            height: 50,
+                            width: MediaQuery.of(context).size.width * 0.45,
+                            decoration: BoxDecoration(
+                              color: secontaryColor,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                "Parâmetros",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const CadastrosalasPage(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 50,
+                              width: MediaQuery.of(context).size.width * 0.45,
+                              decoration: BoxDecoration(
+                                color: secontaryColor,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  "Editar Sala",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: defaultPadding),
                       _buildChartSection('Temperatura', TemperatureLinechart()),
-                      SizedBox(height: defaultPadding),
+                      const SizedBox(height: defaultPadding),
                       _buildChartSection('Umidade', HumidityLinechart()),
-                      SizedBox(height: defaultPadding),
+                      const SizedBox(height: defaultPadding),
                       _buildChartSection('Co²', Co2Linechart()),
                     ],
                   ),
                 ),
-      ),
+              ),
     );
   }
 
@@ -305,11 +350,11 @@ class _SalaPageState extends State<SalaPage> {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
           Text(
             '$value',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -322,9 +367,9 @@ class _SalaPageState extends State<SalaPage> {
       children: [
         Text(
           title,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         chart,
       ],
     );

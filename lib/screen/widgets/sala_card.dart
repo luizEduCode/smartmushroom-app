@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:smartmshroom_app/constants.dart';
-import 'package:smartmshroom_app/screen/sala_page.dart';
+import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/sala_page.dart';
 
 class SalaCard extends StatelessWidget {
   final String nomeSala;

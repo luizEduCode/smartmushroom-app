@@ -3,9 +3,9 @@ import 'dart:math';
 
 /// Painter responsável por desenhar o gráfico donut
 class DonutChartPainter extends CustomPainter {
-  final double percentage;   // valor entre 0.0 e 1.0
-  final Color color;         // cor do arco
-  final double strokeWidth;  // espessura do anel
+  final double percentage; // valor entre 0.0 e 1.0
+  final Color color; // cor do arco
+  final double strokeWidth; // espessura do anel
 
   DonutChartPainter({
     required this.percentage,
@@ -19,25 +19,28 @@ class DonutChartPainter extends CustomPainter {
     final radius = (min(size.width, size.height) / 2) - strokeWidth;
 
     // Círculo de fundo (cinza claro)
-    final backgroundPaint = Paint()
-      ..color = Colors.grey[300]!
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
+    final backgroundPaint =
+        Paint()
+          ..color = Colors.grey[300]!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
 
     canvas.drawCircle(center, radius, backgroundPaint);
 
     // Arco que representa a porcentagem
-    final foregroundPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
+    final foregroundPaint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round;
 
-    double sweepAngle = 2 * pi * percentage; // converte porcentagem para radianos
+    double sweepAngle =
+        2 * pi * percentage; // converte porcentagem para radianos
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,    // começa do topo
+      -pi / 2, // começa do topo
       sweepAngle, // ângulo do arco
       false,
       foregroundPaint,
@@ -48,8 +51,8 @@ class DonutChartPainter extends CustomPainter {
   bool shouldRepaint(covariant DonutChartPainter oldDelegate) {
     // Re-renderiza caso alguma propriedade mude
     return oldDelegate.percentage != percentage ||
-           oldDelegate.color != color ||
-           oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }
 
