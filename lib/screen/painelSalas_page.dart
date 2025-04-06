@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/screen/cadastroSalas_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
+import 'package:smartmushroom_app/screen/criarLote_page.dart';
 
 class PainelsalasPage extends StatefulWidget {
   const PainelsalasPage({super.key});
@@ -145,7 +145,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CadastrosalasPage()),
+            MaterialPageRoute(builder: (context) => const CriarLotePage()),
           );
         },
         tooltip: 'Increment',

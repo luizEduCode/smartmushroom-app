@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
 import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/screen/cadastroSalas_page.dart';
+import 'package:smartmushroom_app/editarParametros_page.dart';
 import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
@@ -162,7 +162,7 @@ class _SalaPageState extends State<SalaPage> {
   Future<void> _finalizarLote() async {
     try {
       final response = await http.delete(
-        Uri.parse('${apiBaseUrl}salas.php?idLote=${widget.idLote}'),
+        Uri.parse('${apiBaseUrl}lote.php?idLote=${widget.idLote}'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       );
 
@@ -246,7 +246,7 @@ class _SalaPageState extends State<SalaPage> {
                             label: 'Umidade',
                             icon: Icons.water_drop_outlined,
                             percentage: 50,
-                            valueLabel: _dadosSala['umidade'],
+                            valueLabel: _dadosSala['umidade'] ?? '--',
                             color: Colors.blueAccent,
                           ),
                           const SizedBox(width: defaultPadding),
@@ -254,7 +254,7 @@ class _SalaPageState extends State<SalaPage> {
                             label: 'Nível CO²',
                             icon: Icons.cloud_outlined,
                             percentage: 50,
-                            valueLabel: _dadosSala['co2'],
+                            valueLabel: _dadosSala['co2'] ?? '--',
                             color: Colors.orangeAccent,
                           ),
                         ],
@@ -355,7 +355,9 @@ class _SalaPageState extends State<SalaPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder:
-                                      (context) => const CadastrosalasPage(),
+                                      (context) => EditarParametrosPage(
+                                        idLote: widget.idLote,
+                                      ),
                                 ),
                               );
                             },
