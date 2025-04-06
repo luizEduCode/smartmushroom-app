@@ -304,26 +304,14 @@ class _CadastrosalasPageState extends State<CadastrosalasPage> {
             const SizedBox(height: 24),
             // ========= BOTÕES =========
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 ElevatedButton.icon(
                   onPressed: _onSalvar,
                   icon: const Icon(Icons.save),
                   label: const Text('Salvar'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[600],
-
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _onFinalizar,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Finalizar lote'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
+                    backgroundColor: Colors.greenAccent,
 
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

@@ -116,7 +116,7 @@ class _SalaPageState extends State<SalaPage> {
     }
   }
 
-  Future<void> dalterarStatusAtuador(int idAtuador) async {
+  Future<void> _alterarStatusAtuador(int idAtuador) async {
     // Atualiza a interface para indicar que algo está acontecendo (opcional)
     try {
       final response = await http.post(
@@ -252,29 +252,58 @@ class _SalaPageState extends State<SalaPage> {
                                   ? const Color.fromARGB(255, 97, 247, 28)
                                   : secontaryColor;
 
-                          IconData icon =
-                              Icons.lightbulb; // Ícone padrão para os atuadores
+                          // Definir ícones e rótulos diferentes para cada atuador
+                          IconData icon;
+                          String label;
+                          switch (idAtuador) {
+                            case 1:
+                              icon = Icons.water; // Exemplo: umidificador
+                              label = 'Umidade';
+                              break;
+                              
+                            case 2:
+                              icon = Icons.air; // Exemplo: ventilação
+                              label = 'Ventilação';
+                              break;
 
-                          return ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: buttonColor,
-                              shape: const CircleBorder(),
-                              padding: const EdgeInsets.all(20),
-                            ),
-                            onPressed: () async {
-                              //await //alterarStatusAtuador(idAtuador);
-                            },
-                            child: const Icon(
-                              Icons.lightbulb,
-                              color: Colors.white,
-                              size: 25,
-                            ),
+                            case 3:
+                              icon = Icons.light_mode; // Exemplo: iluminação
+                              label = 'Iluminação';
+                              break;
+
+                            case 4:
+                              icon = Icons.ac_unit; // Exemplo: ar condicionado
+                              label = 'Temperatura';
+                              break;
+
+                            default:
+                              icon = Icons.lightbulb;
+                              label = 'Atuador';
+                          }
+
+                          return Column(
+                            children: [
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: buttonColor,
+                                  shape: const CircleBorder(),
+                                  padding: const EdgeInsets.all(20),
+                                ),
+                                onPressed: () async {
+                                  await _alterarStatusAtuador(idAtuador);
+                                },
+                                child: Icon(
+                                  icon,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(label, style: const TextStyle(fontSize: 12)),
+                            ],
                           );
                         }),
                       ),
-                      const SizedBox(height: defaultPadding),
-                      
-                      Row(),
 
                       const SizedBox(height: defaultPadding),
                       Row(
@@ -284,12 +313,12 @@ class _SalaPageState extends State<SalaPage> {
                             height: 50,
                             width: MediaQuery.of(context).size.width * 0.45,
                             decoration: BoxDecoration(
-                              color: secontaryColor,
+                              color: Colors.red.shade300,
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: const Center(
                               child: Text(
-                                "Parâmetros",
+                                "Finalizar Lote",
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
