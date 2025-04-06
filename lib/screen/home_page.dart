@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/screen/painelSalas_page.dart';
+import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/salaHome_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -93,10 +94,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Image.asset('assets/logo.png', height: 40),
-        backgroundColor: primaryColor,
-      ),
+      appBar: const CustomAppBar(title: 'Smartmushroom', showBackButton: false),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(defaultPadding),

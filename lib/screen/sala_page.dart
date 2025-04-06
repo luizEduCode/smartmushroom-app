@@ -16,6 +16,7 @@ import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
+import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class SalaPage extends StatefulWidget {
   final String nomeSala;
@@ -163,23 +164,7 @@ class _SalaPageState extends State<SalaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromRGBO(234, 234, 234, 1),
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        title: Text(
-          widget.nomeSala,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-        ],
-      ),
+      appBar: const CustomAppBar(title: 'Sala 1'),
       drawer: const Drawer(),
       body:
           _isLoading
@@ -304,7 +289,6 @@ class _SalaPageState extends State<SalaPage> {
                           );
                         }),
                       ),
-
                       const SizedBox(height: defaultPadding),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
