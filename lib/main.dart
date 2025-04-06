@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:smartmushroom_app/screen/home_page.dart';
+import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/splash_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Garante que o Flutter está pronto
+  WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -15,11 +16,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'SmartMushroom',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
+        useMaterial3: true,
       ),
-      home: HomePage(),
+      home: const SplashScreen(),
     );
   }
 }

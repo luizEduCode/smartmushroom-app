@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/cadastroSalas_page.dart';
+import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
 
 class PainelsalasPage extends StatefulWidget {
@@ -87,14 +89,8 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Painel de Salas",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-      ),
+      //alterando o app bar
+      appBar: const CustomAppBar(title: 'Painel de Salas'),
       body: Padding(
         padding: const EdgeInsets.all(10),
         child: RefreshIndicator(
@@ -143,6 +139,17 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
                     },
                   ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: secontaryColor,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CadastrosalasPage()),
+          );
+        },
+        tooltip: 'Increment',
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }

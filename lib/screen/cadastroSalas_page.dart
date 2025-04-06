@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
+import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class CadastrosalasPage extends StatefulWidget {
   const CadastrosalasPage({super.key});
@@ -101,14 +102,7 @@ class _CadastrosalasPageState extends State<CadastrosalasPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Cadastro Salas",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-      ),
+      appBar: const CustomAppBar(title: 'Cadastro de Lotes'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
