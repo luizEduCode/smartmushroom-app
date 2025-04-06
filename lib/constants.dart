@@ -7,5 +7,4 @@ const defaultPadding = 16.0;
 
 const defaultHeightButton = 50;
 
-const String apiBaseUrl = 'http://192.168.1.100/smartmushroom-api/';
-
+const String apiBaseUrl = 'http://192.168.15.9/smartmushroom-api/';

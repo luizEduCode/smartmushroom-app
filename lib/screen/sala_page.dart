@@ -15,7 +15,6 @@ import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
-import 'package:smartmushroom_app/screen/sala_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class SalaPage extends StatefulWidget {
@@ -160,11 +159,45 @@ class _SalaPageState extends State<SalaPage> {
     }
   }
 
+  Future<void> _finalizarLote() async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${apiBaseUrl}salas.php?idLote=${widget.idLote}'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['message'] == 'Lote finalizado com sucesso') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lote finalizado com sucesso!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao finalizar lote!')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Erro ao conectar ao servidor: ${response.statusCode}',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromRGBO(234, 234, 234, 1),
-      appBar: const CustomAppBar(title: 'Sala 1'),
+      appBar: CustomAppBar(title: widget.nomeSala),
       drawer: const Drawer(),
       body:
           _isLoading
@@ -245,7 +278,7 @@ class _SalaPageState extends State<SalaPage> {
                               icon = Icons.water; // Exemplo: umidificador
                               label = 'Umidade';
                               break;
-                              
+
                             case 2:
                               icon = Icons.air; // Exemplo: ventilação
                               label = 'Ventilação';
@@ -293,20 +326,25 @@ class _SalaPageState extends State<SalaPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            height: 50,
-                            width: MediaQuery.of(context).size.width * 0.45,
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade300,
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                "Finalizar Lote",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                          InkWell(
+                            onTap: () {
+                              modalFinalizaLote();
+                            },
+                            child: Container(
+                              height: 50,
+                              width: MediaQuery.of(context).size.width * 0.45,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  "Finalizar Lote",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
@@ -385,6 +423,47 @@ class _SalaPageState extends State<SalaPage> {
         const SizedBox(height: 8),
         chart,
       ],
+    );
+  }
+
+  void modalFinalizaLote() async {
+    await showDialog(
+      barrierDismissible: false,
+      barrierColor: Colors.black.withAlpha(100),
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: primaryColor,
+          title: const Text(
+            'Finalizar o Lote?',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          content: const Text(
+            'Essa é uma ação que não poderá ser revertida!',
+            style: TextStyle(fontSize: 17, color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _finalizarLote();
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                'Finalizar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
