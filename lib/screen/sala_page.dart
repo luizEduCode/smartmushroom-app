@@ -435,7 +435,7 @@ class _SalaPageState extends State<SalaPage> {
         return AlertDialog(
           backgroundColor: primaryColor,
           title: const Text(
-            'Finalizar o Lote?',
+            'Deseja finalizar o Lote?',
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
           content: const Text(
