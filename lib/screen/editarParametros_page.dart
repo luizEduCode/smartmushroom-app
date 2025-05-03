@@ -94,6 +94,9 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
 
       if (response.statusCode == 200) {
         Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sucesso ao salvar parâmetros!')),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao salvar: ${response.body}')),
@@ -122,10 +125,20 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
                     _buildTemperaturaSlider(),
                     _buildUmidadeSlider(),
                     _buildCo2Slider(),
-                    const SizedBox(height: 30),
-                    ElevatedButton(
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
                       onPressed: _salvarParametros,
-                      child: const Text('SALVAR ALTERAÇÕES'),
+                      icon: const Icon(Icons.save, color: Colors.white),
+                      label: const Text(
+                        'Salvar Parâmetros',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ],
                 ),

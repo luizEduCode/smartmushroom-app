@@ -176,7 +176,7 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             final sala = _salas[index];
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.only(bottom: 0),
                               child: SalahomeCard(
                                 idLote: sala['idLote'].toString(),
                                 nomeSala: sala['nomeSala'] ?? 'Sem nome',
