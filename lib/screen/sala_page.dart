@@ -9,12 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
 import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/editarParametros_page.dart';
 import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
+import 'package:smartmushroom_app/screen/editarParametros_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class SalaPage extends StatefulWidget {
@@ -75,7 +75,7 @@ class _SalaPageState extends State<SalaPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          '${apiBaseUrl}nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
+          '${getApiBaseUrl()}nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
         ),
       );
 
@@ -120,7 +120,7 @@ class _SalaPageState extends State<SalaPage> {
     // Atualiza a interface para indicar que algo está acontecendo (opcional)
     try {
       final response = await http.post(
-        Uri.parse('${apiBaseUrl}controle_atuadores.php'),
+        Uri.parse('${getApiBaseUrl()}controle_atuadores.php'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'idAtuador': idAtuador.toString()},
       );
@@ -162,7 +162,7 @@ class _SalaPageState extends State<SalaPage> {
   Future<void> _finalizarLote() async {
     try {
       final response = await http.delete(
-        Uri.parse('${apiBaseUrl}lote.php?idLote=${widget.idLote}'),
+        Uri.parse('${getApiBaseUrl()}lote.php?idLote=${widget.idLote}'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       );
 

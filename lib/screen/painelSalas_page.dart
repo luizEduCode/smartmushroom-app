@@ -39,26 +39,32 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(Uri.parse('${apiBaseUrl}salas.php'));
+      final response = await http.get(Uri.parse('${getApiBaseUrl()}salas.php'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          _salas = data['sala'] ?? [];
-          _isLoading = false;
-          _hasError = false;
-        });
+        if (mounted) {
+          setState(() {
+            _salas = data['sala'] ?? [];
+            _isLoading = false;
+            _hasError = false;
+          });
+        }
       } else {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _hasError = true;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _hasError = true;
-        _isLoading = false;
-      });
     }
   }
 
@@ -66,7 +72,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
   Future<void> vincularLote(int idSala, int idLote) async {
     try {
       final response = await http.post(
-        Uri.parse('${apiBaseUrl}salas.php'),
+        Uri.parse('${getApiBaseUrl()}salas.php'),
         body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
       );
 

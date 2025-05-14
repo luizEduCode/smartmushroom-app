@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/screen/ip_page.dart';
 import 'package:smartmushroom_app/screen/painelSalas_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/salaHome_card.dart';
@@ -38,7 +39,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(Uri.parse('${apiBaseUrl}salas.php'));
+      final response = await http.get(Uri.parse('${getApiBaseUrl()}salas.php'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -65,7 +66,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> vincularLote(int idSala, int idLote) async {
     try {
       final response = await http.post(
-        Uri.parse('${apiBaseUrl}salas.php'),
+        Uri.parse('${getApiBaseUrl()}salas.php'),
         body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
       );
 
@@ -94,7 +95,21 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Smartmushroom', showBackButton: false),
+      appBar: CustomAppBar(
+        title: 'Smartmushroom',
+        showBackButton: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ConfigIPPage()),
+              );
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(defaultPadding),
@@ -161,7 +176,7 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             final sala = _salas[index];
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.only(bottom: 0),
                               child: SalahomeCard(
                                 idLote: sala['idLote'].toString(),
                                 nomeSala: sala['nomeSala'] ?? 'Sem nome',
