@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+import 'dart:async';
 
 class EditarParametrosPage extends StatefulWidget {
   final String idLote;
@@ -21,19 +22,22 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
   double _co2Max = 1500;
   bool _loading = true;
   String _errorMessage = '';
-  int _idSala = 0;
+  bool _loadingPhases = false;
+  String? _erroPhases;
+  List<Map<String, dynamic>> _cultivationPhases = [];
+  String? _selectedPhase;
 
   @override
   void initState() {
     super.initState();
     _carregarParametrosAtuais();
+    _carregarFasesCultivo();
   }
 
   Future<void> _carregarParametrosAtuais() async {
     try {
       final response = await http.get(
-        // Uri.parse('${getApiBaseUrl()}configuracao.php?idLote=${widget.idLote}'),
-        Uri.parse('${getApiBaseUrl()}configuracao.php?idLote=1'),
+        Uri.parse('${getApiBaseUrl()}configuracao.php?idLote=${widget.idLote}'),
       );
 
       final data = jsonDecode(response.body);
@@ -50,20 +54,17 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
             _umidadeMin = double.parse(data['configuracao']['umidadeMin']);
             _umidadeMax = double.parse(data['configuracao']['umidadeMax']);
             _co2Max = double.parse(data['configuracao']['co2Max']);
-            _idSala = data['idSala'] ?? '';
             _loading = false;
           });
         } else {
           setState(() {
             _errorMessage = 'Configurações padrão carregadas';
-            _idSala = data['idSala'] ?? '';
             _loading = false;
           });
         }
       } else if (response.statusCode == 404) {
         setState(() {
           _errorMessage = data['error'] ?? 'Configuração não existe';
-          _idSala = data['idSala'] ?? '';
           _loading = false;
         });
       } else {
@@ -89,23 +90,61 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           'umidadeMin': _umidadeMin,
           'umidadeMax': _umidadeMax,
           'co2Max': _co2Max,
+          'idFaseCultivo': _selectedPhase,
         }),
       );
 
       if (response.statusCode == 200) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sucesso ao salvar parâmetros!')),
-        );
+        if (mounted) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sucesso ao salvar parâmetros!')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao salvar: ${response.body}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao salvar: ${response.body}')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
+      }
+    }
+  }
+
+  Future<void> _carregarFasesCultivo() async {
+    setState(() {
+      _loadingPhases = true;
+      _erroPhases = null;
+    });
+
+    try {
+      final url = Uri.parse('${getApiBaseUrl()}lote.php?action=fases-cultivo');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            _cultivationPhases = List<Map<String, dynamic>>.from(data['data']);
+            _loadingPhases = false;
+          });
+        } else {
+          throw Exception(data['message'] ?? 'Erro ao carregar fases');
+        }
+      } else {
+        throw Exception('Erro HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _erroPhases = 'Falha ao carregar fases: ${e.toString()}';
+        _loadingPhases = false;
+      });
     }
   }
 
@@ -122,10 +161,83 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    // Card para Sala
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 24,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Center(
+                              child: Text(
+                                'Dados do Lote',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: defaultPadding),
+                            // Dropdown Fase (agora dinâmico)
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: 'Fase de Cultivo',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.timeline),
+                              ),
+                              value: _selectedPhase,
+                              items:
+                                  _cultivationPhases.map((fase) {
+                                    return DropdownMenuItem<String>(
+                                      value: fase['idFaseCultivo'].toString(),
+                                      child: Text(fase['nomeFaseCultivo']),
+                                    );
+                                  }).toList(),
+                              onChanged:
+                                  _loadingPhases
+                                      ? null
+                                      : (value) => setState(
+                                        () => _selectedPhase = value,
+                                      ),
+                              hint:
+                                  _loadingPhases
+                                      ? const Text("Carregando fases...")
+                                      : _erroPhases != null
+                                      ? Text(_erroPhases!)
+                                      : const Text("Selecione uma fase"),
+                              disabledHint:
+                                  _loadingPhases
+                                      ? const Text("Carregando fases...")
+                                      : _erroPhases != null
+                                      ? Text(_erroPhases!)
+                                      : const Text("Nenhuma fase disponível"),
+                              icon:
+                                  _loadingPhases
+                                      ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : const Icon(Icons.arrow_drop_down),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: defaultPadding),
                     _buildTemperaturaSlider(),
                     _buildUmidadeSlider(),
                     _buildCo2Slider(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: defaultPadding),
                     ElevatedButton.icon(
                       onPressed: _salvarParametros,
                       icon: const Icon(Icons.save, color: Colors.white),
