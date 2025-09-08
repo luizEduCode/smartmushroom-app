@@ -268,7 +268,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
         ),
         Slider(
           value: _temperaturaMin,
-          min: 0, //era 18 para 0
+          min: 18,
           max: 28,
           divisions: 10,
           label: _temperaturaMin.toStringAsFixed(1),
