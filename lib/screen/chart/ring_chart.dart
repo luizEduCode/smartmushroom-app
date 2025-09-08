@@ -57,7 +57,7 @@ class RingChart extends StatelessWidget {
                               radius: 5,
                             ),
                             PieChartSectionData(
-                              value: 50,
+                              value: 25,
                               color: Colors.grey,
                               showTitle: false,
                               radius: 5,

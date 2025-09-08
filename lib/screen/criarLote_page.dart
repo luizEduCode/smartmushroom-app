@@ -14,24 +14,91 @@ class CriarLotePage extends StatefulWidget {
 }
 
 class _CriarLotePageState extends State<CriarLotePage> {
-  // Lista de salas (consultada via API)
   List<Map<String, dynamic>> _salasFinalizadas = [];
   String? _selectedSala;
   bool _loadingSalas = true;
   String? _erroSalas;
 
-  // Listas fixas conforme solicitado
-  final List<String> mushroomTypes = ['Shimeji', 'Champignon', 'Shitake'];
-
-  final List<String> cultivationPhases = ['Colonização', 'Frutificação'];
-
+  // Substitua as listas fixas por estas:
+  List<Map<String, dynamic>> _mushroomTypes = [];
+  List<Map<String, dynamic>> _cultivationPhases = [];
   String? _selectedMushroom;
   String? _selectedPhase;
+  bool _loadingMushrooms = true;
+  bool _loadingPhases = true;
+  String? _erroMushrooms;
+  String? _erroPhases;
 
   @override
   void initState() {
     super.initState();
     _carregarSalasFinalizadas();
+    _carregarTiposCogumelos();
+    _carregarFasesCultivo();
+  }
+
+  Future<void> _carregarTiposCogumelos() async {
+    setState(() {
+      _loadingMushrooms = true;
+      _erroMushrooms = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        '${getApiBaseUrl()}lote.php?action=tipos-cogumelos',
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            _mushroomTypes = List<Map<String, dynamic>>.from(data['data']);
+            _loadingMushrooms = false;
+          });
+        } else {
+          throw Exception(data['message'] ?? 'Erro ao carregar cogumelos');
+        }
+      } else {
+        throw Exception('Erro HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _erroMushrooms = 'Falha ao carregar cogumelos: ${e.toString()}';
+        _loadingMushrooms = false;
+      });
+    }
+  }
+
+  Future<void> _carregarFasesCultivo() async {
+    setState(() {
+      _loadingPhases = true;
+      _erroPhases = null;
+    });
+
+    try {
+      final url = Uri.parse('${getApiBaseUrl()}lote.php?action=fases-cultivo');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            _cultivationPhases = List<Map<String, dynamic>>.from(data['data']);
+            _loadingPhases = false;
+          });
+        } else {
+          throw Exception(data['message'] ?? 'Erro ao carregar fases');
+        }
+      } else {
+        throw Exception('Erro HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _erroPhases = 'Falha ao carregar fases: ${e.toString()}';
+        _loadingPhases = false;
+      });
+    }
   }
 
   Future<void> _carregarSalasFinalizadas() async {
@@ -41,7 +108,9 @@ class _CriarLotePageState extends State<CriarLotePage> {
     });
 
     try {
-      final url = Uri.parse('${apiBaseUrl}lote.php?action=salas-disponiveis');
+      final url = Uri.parse(
+        '${getApiBaseUrl()}lote.php?action=salas-disponiveis',
+      );
       debugPrint('Tentando acessar: $url');
 
       final response = await http
@@ -93,33 +162,19 @@ class _CriarLotePageState extends State<CriarLotePage> {
         (sala) => sala['nomeSala'] == _selectedSala,
       );
 
-      // Mapeia os nomes para IDs
-      final Map<String, int> cogumeloIds = {
-        'Shimeji': 1,
-        'Champignon': 2,
-        'Shitake': 3,
-      };
-
-      final Map<String, int> faseIds = {'Colonização': 1, 'Frutificação': 2};
-
-      // Valores padrão para as leituras iniciais
-      // const double temperaturaInicial = 25.0;
-      // const double umidadeInicial = 70.0;
-      // const int co2Inicial = 800;
-      // const int luzInicial = 1;
-
       final response = await http
           .post(
-            Uri.parse('${apiBaseUrl}lote.php'),
+            Uri.parse('${getApiBaseUrl()}lote.php'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'idSala': salaSelecionada['idSala'],
-              'idCogumelo': cogumeloIds[_selectedMushroom],
-              'idFase': faseIds[_selectedPhase],
-              // 'temperatura': temperaturaInicial,
-              // 'umidade': umidadeInicial,
-              // 'co2': co2Inicial,
-              // 'luz': luzInicial,
+              'idCogumelo': int.parse(_selectedMushroom!),
+              'idFase': int.parse(_selectedPhase!),
+              // Valores padrão comentados (caso precise usar depois)
+              // 'temperatura': 25.0,
+              // 'umidade': 70.0,
+              // 'co2': 800,
+              // 'luz': 1,
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -153,6 +208,10 @@ class _CriarLotePageState extends State<CriarLotePage> {
         ),
       );
       debugPrint('FormatException: $e');
+    } on TimeoutException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Timeout: Servidor não respondeu')),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao criar lote: ${e.toString()}')),
@@ -259,44 +318,94 @@ class _CriarLotePageState extends State<CriarLotePage> {
                                   : const Icon(Icons.arrow_drop_down),
                         ),
                     const SizedBox(height: 16),
-                    // Dropdown Cogumelo (dados fixos)
+                    // Dropdown Cogumelo (agora dinâmico)
                     DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Tipo de Cogumelo',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.eco),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.eco),
                       ),
                       value: _selectedMushroom,
                       items:
-                          mushroomTypes.map((type) {
+                          _mushroomTypes.map((cogumelo) {
                             return DropdownMenuItem<String>(
-                              value: type,
-                              child: Text(type),
+                              value: cogumelo['idCogumelo'].toString(),
+                              child: Text(cogumelo['nomeCogumelo']),
                             );
                           }).toList(),
                       onChanged:
-                          (value) => setState(() => _selectedMushroom = value),
-                      hint: const Text("Selecione um cogumelo"),
+                          _loadingMushrooms
+                              ? null
+                              : (value) =>
+                                  setState(() => _selectedMushroom = value),
+                      hint:
+                          _loadingMushrooms
+                              ? const Text("Carregando cogumelos...")
+                              : _erroMushrooms != null
+                              ? Text(_erroMushrooms!)
+                              : const Text("Selecione um cogumelo"),
+                      disabledHint:
+                          _loadingMushrooms
+                              ? const Text("Carregando cogumelos...")
+                              : _erroMushrooms != null
+                              ? Text(_erroMushrooms!)
+                              : const Text("Nenhum cogumelo disponível"),
+                      icon:
+                          _loadingMushrooms
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.arrow_drop_down),
                     ),
+
                     const SizedBox(height: 16),
-                    // Dropdown Fase (dados fixos)
+
+                    // Dropdown Fase (agora dinâmico)
                     DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Fase de Cultivo',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.timeline),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.timeline),
                       ),
                       value: _selectedPhase,
                       items:
-                          cultivationPhases.map((phase) {
+                          _cultivationPhases.map((fase) {
                             return DropdownMenuItem<String>(
-                              value: phase,
-                              child: Text(phase),
+                              value: fase['idFaseCultivo'].toString(),
+                              child: Text(fase['nomeFaseCultivo']),
                             );
                           }).toList(),
                       onChanged:
-                          (value) => setState(() => _selectedPhase = value),
-                      hint: const Text("Selecione uma fase"),
+                          _loadingPhases
+                              ? null
+                              : (value) =>
+                                  setState(() => _selectedPhase = value),
+                      hint:
+                          _loadingPhases
+                              ? const Text("Carregando fases...")
+                              : _erroPhases != null
+                              ? Text(_erroPhases!)
+                              : const Text("Selecione uma fase"),
+                      disabledHint:
+                          _loadingPhases
+                              ? const Text("Carregando fases...")
+                              : _erroPhases != null
+                              ? Text(_erroPhases!)
+                              : const Text("Nenhuma fase disponível"),
+                      icon:
+                          _loadingPhases
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.arrow_drop_down),
                     ),
                   ],
                 ),

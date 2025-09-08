@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/screen/splash_screen.dart';
+import 'package:get_storage/get_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
+  await GetStorage.init(); // Inicializa o GetStorage
   runApp(const MyApp());
 }
 

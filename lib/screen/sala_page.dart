@@ -9,12 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
 import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/editarParametros_page.dart';
 import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
+import 'package:smartmushroom_app/screen/editarParametros_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class SalaPage extends StatefulWidget {
@@ -75,7 +75,7 @@ class _SalaPageState extends State<SalaPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          '${apiBaseUrl}nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
+          '${getApiBaseUrl()}nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
         ),
       );
 
@@ -117,38 +117,35 @@ class _SalaPageState extends State<SalaPage> {
   }
 
   Future<void> _alterarStatusAtuador(int idAtuador) async {
-    // Atualiza a interface para indicar que algo está acontecendo (opcional)
+    // calcula o novo status: se estava false, vira 'ativo'; se true, vira 'inativo'
+    final bool atual = _atuadoresStatus[idAtuador] ?? false;
+    final String novoStatus = !atual ? 'ativo' : 'inativo';
+
     try {
       final response = await http.post(
-        Uri.parse('${apiBaseUrl}controle_atuadores.php'),
+        Uri.parse('${getApiBaseUrl()}controle_atuadores.php'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {'idAtuador': idAtuador.toString()},
+        body: {'idAtuador': idAtuador.toString(), 'statusAtuador': novoStatus},
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['mensagem'] == 'Status do atuador atualizado com sucesso') {
-          // Atualiza o status local e salva no SharedPreferences
+        if (data['mensagem'].toString().contains('atualizado')) {
           setState(() {
-            _atuadoresStatus[idAtuador] =
-                !(_atuadoresStatus[idAtuador] ?? false);
+            _atuadoresStatus[idAtuador] = !atual;
           });
-          await salvarStatusLocal(idAtuador, _atuadoresStatus[idAtuador]!);
-          // Feedback para o usuário
+          await salvarStatusLocal(idAtuador, !atual);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Atuador atualizado com sucesso')),
           );
         } else {
-          // Se a mensagem não bater, exibe erro
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Erro ao atualizar atuador')),
           );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: ${response.statusCode} ao atualizar atuador'),
-          ),
+          SnackBar(content: Text('Erro ${response.statusCode} ao atualizar')),
         );
       }
     } catch (e) {
@@ -162,7 +159,7 @@ class _SalaPageState extends State<SalaPage> {
   Future<void> _finalizarLote() async {
     try {
       final response = await http.delete(
-        Uri.parse('${apiBaseUrl}lote.php?idLote=${widget.idLote}'),
+        Uri.parse('${getApiBaseUrl()}lote.php?idLote=${widget.idLote}'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       );
 
