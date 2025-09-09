@@ -371,7 +371,7 @@ class _SalaPageState extends State<SalaPage> {
                             },
                             child: Container(
                               height: 50,
-                              width: MediaQuery.of(context).size.width * 0.37,
+                              width: MediaQuery.of(context).size.width * 0.38,
                               decoration: BoxDecoration(
                                 color: secontaryColor,
                                 borderRadius: BorderRadius.circular(15),
@@ -394,7 +394,7 @@ class _SalaPageState extends State<SalaPage> {
                             },
                             child: Container(
                               height: 50,
-                              width: MediaQuery.of(context).size.width * 0.37,
+                              width: MediaQuery.of(context).size.width * 0.38,
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
@@ -417,7 +417,7 @@ class _SalaPageState extends State<SalaPage> {
                             },
                             child: Container(
                               height: 50,
-                              width: MediaQuery.of(context).size.width * 0.15,
+                              width: MediaQuery.of(context).size.width * 0.14,
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
