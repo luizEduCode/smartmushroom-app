@@ -158,7 +158,7 @@ class _SalaPageState extends State<SalaPage> {
 
   Future<void> _finalizarLote() async {
     try {
-      final response = await http.delete(
+      final response = await http.put(
         Uri.parse('${getApiBaseUrl()}lote.php?idLote=${widget.idLote}'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       );
@@ -172,6 +172,40 @@ class _SalaPageState extends State<SalaPage> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Erro ao finalizar lote!')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Erro ao conectar ao servidor: ${response.statusCode}',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+    }
+  }
+
+  Future<void> _excluirLote() async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${getApiBaseUrl()}lote.php?idLote=${widget.idLote}'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['message'] == 'Lote excluido com sucesso') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lote excluido com sucesso!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao excluir lote!')),
           );
         }
       } else {
@@ -325,11 +359,42 @@ class _SalaPageState extends State<SalaPage> {
                         children: [
                           InkWell(
                             onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => EditarParametrosPage(
+                                        idLote: widget.idLote,
+                                      ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 50,
+                              width: MediaQuery.of(context).size.width * 0.37,
+                              decoration: BoxDecoration(
+                                color: secontaryColor,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  "Editar Sala",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
                               modalFinalizaLote();
                             },
                             child: Container(
                               height: 50,
-                              width: MediaQuery.of(context).size.width * 0.45,
+                              width: MediaQuery.of(context).size.width * 0.37,
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
@@ -348,32 +413,17 @@ class _SalaPageState extends State<SalaPage> {
                           ),
                           InkWell(
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => EditarParametrosPage(
-                                        idLote: widget.idLote,
-                                      ),
-                                ),
-                              );
+                              modalExcluirLote();
                             },
                             child: Container(
                               height: 50,
-                              width: MediaQuery.of(context).size.width * 0.45,
+                              width: MediaQuery.of(context).size.width * 0.15,
                               decoration: BoxDecoration(
-                                color: secontaryColor,
+                                color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: const Center(
-                                child: Text(
-                                  "Editar Sala",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                child: Icon(Icons.delete, color: Colors.white),
                               ),
                             ),
                           ),
@@ -438,7 +488,7 @@ class _SalaPageState extends State<SalaPage> {
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
           content: const Text(
-            'Essa é uma ação que não poderá ser revertida!',
+            'Essa é uma ação que não poderá ser revertida, e todos os dados do lote permanecerão registrados.',
             style: TextStyle(fontSize: 17, color: Colors.white),
           ),
           actions: [
@@ -453,10 +503,53 @@ class _SalaPageState extends State<SalaPage> {
               onPressed: () async {
                 await _finalizarLote();
                 Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
                 'Finalizar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void modalExcluirLote() async {
+    await showDialog(
+      barrierDismissible: false,
+      barrierColor: Colors.black.withAlpha(100),
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: primaryColor,
+          title: const Text(
+            'Deseja excluir o Lote?',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          content: const Text(
+            'Essa é uma ação que não poderá ser revertida, ao excluir o lote, todos os dados relacionados a ele serão apagados!',
+            style: TextStyle(fontSize: 17, color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _excluirLote();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                'Excluir',
                 style: TextStyle(color: Colors.white),
               ),
             ),

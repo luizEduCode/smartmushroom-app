@@ -41,8 +41,6 @@ class _HomePageState extends State<HomePage> {
   Future<void> fetchSalas() async {
     try {
       final response = await http.get(Uri.parse('${getApiBaseUrl()}salas.php'));
-      final response = await http.get(Uri.parse('${getApiBaseUrl()}salas.php'));
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -68,7 +66,6 @@ class _HomePageState extends State<HomePage> {
   Future<void> vincularLote(int idSala, int idLote) async {
     try {
       final response = await http.post(
-        Uri.parse('${getApiBaseUrl()}salas.php'),
         Uri.parse('${getApiBaseUrl()}salas.php'),
         body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
       );
@@ -98,21 +95,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Smartmushroom',
-        showBackButton: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ConfigIPPage()),
-              );
-            },
-          ),
-        ],
-      ),
       appBar: CustomAppBar(
         title: 'Smartmushroom',
         showBackButton: false,
@@ -194,7 +176,6 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             final sala = _salas[index];
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 0),
                               padding: const EdgeInsets.only(bottom: 0),
                               child: SalahomeCard(
                                 idLote: sala['idLote'].toString(),
