@@ -1,26 +1,3 @@
-// // ignore: camel_case_types
-// class cogumelos {
-//   int? idCogumelo;
-//   String? nomeCogumelo;
-//   String? descricao;
-
-//   cogumelos({this.idCogumelo, this.nomeCogumelo, this.descricao});
-
-//   cogumelos.fromJson(Map<String, dynamic> json) {
-//     idCogumelo = int.tryParse(json['idCogumelo']?.toString() ?? '') ?? 0;
-//     nomeCogumelo = json['nomeCogumelo']?.toString();
-//     descricao = json['descricao']?.toString();
-//   }
-
-//   Map<String, dynamic> toJson() {
-//     final Map<String, dynamic> data = {};
-//     data['idCogumelo'] = idCogumelo;
-//     data['nomeCogumelo'] = nomeCogumelo;
-//     data['descricao'] = descricao;
-//     return data;
-//   }
-// }
-
 class cogumelos {
   final int idCogumelo;
   final String nomeCogumelo;

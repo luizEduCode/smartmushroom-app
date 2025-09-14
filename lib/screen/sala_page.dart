@@ -1,13 +1,8 @@
-// Importações de bibliotecas nativas
 import 'dart:async';
 import 'dart:convert';
-
-// Importações de pacotes externos
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-// Importações locais
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
