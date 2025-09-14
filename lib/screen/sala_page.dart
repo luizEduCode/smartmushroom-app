@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Importações locais
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
@@ -19,9 +20,15 @@ import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class SalaPage extends StatefulWidget {
   final String nomeSala;
-  final String idLote; // Recebe o idLote
+  final String idLote;
+  final String? idSala; // idSala agora é opcional (nullable)
 
-  const SalaPage({super.key, required this.nomeSala, required this.idLote});
+  const SalaPage({
+    super.key,
+    required this.nomeSala,
+    required this.idLote,
+    this.idSala, // removido 'required'
+  });
 
   @override
   State<SalaPage> createState() => _SalaPageState();
@@ -29,9 +36,9 @@ class SalaPage extends StatefulWidget {
 
 class _SalaPageState extends State<SalaPage> {
   late Timer _timer;
-  Map<String, dynamic> _dadosSala = {}; // Dados da sala
+  Map<String, dynamic> _dadosSala = {};
   bool _isLoading = true;
-  bool _hasFetchError = false; // Indica erro no fetch da sala
+  bool _hasFetchError = false;
   Map<int, bool> _atuadoresStatus = {};
 
   @override
@@ -54,11 +61,13 @@ class _SalaPageState extends State<SalaPage> {
     Map<int, bool> estados = {};
     for (int id = 1; id <= 4; id++) {
       final status = await carregarStatusLocal(id);
-      estados[id] = status ?? false; // padrão: desligado (false)
+      estados[id] = status ?? false;
     }
-    setState(() {
-      _atuadoresStatus = estados;
-    });
+    if (mounted) {
+      setState(() {
+        _atuadoresStatus = estados;
+      });
+    }
   }
 
   Future<bool?> carregarStatusLocal(int idAtuador) async {
@@ -74,9 +83,8 @@ class _SalaPageState extends State<SalaPage> {
   Future<void> fetchSala() async {
     try {
       final response = await http.get(
-        Uri.parse(
-          '${getApiBaseUrl()}nomesala.php?nomeSala=${Uri.encodeComponent(widget.nomeSala)}&idLote=${Uri.encodeComponent(widget.idLote)}',
-        ),
+        Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
+        headers: {'Accept': 'application/json'},
       );
 
       debugPrint('Status Code: ${response.statusCode}');
@@ -85,39 +93,66 @@ class _SalaPageState extends State<SalaPage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        if (data['sala'] != null && data['sala'].isNotEmpty) {
-          debugPrint('Dados recebidos: ${data['sala'][0]}');
+        // Usando a model para parsear os dados
+        final salasComLotes = SalaLotesAtivos.fromJson(data);
 
+        // Encontrar a sala específica pelo ID do lote
+        Salas? salaEncontrada;
+        Lotes? loteEncontrado;
+
+        for (var sala in salasComLotes.salas ?? []) {
+          for (var lote in sala.lotes ?? []) {
+            if (lote.idLote?.toString() == widget.idLote) {
+              salaEncontrada = sala;
+              loteEncontrado = lote;
+              break;
+            }
+          }
+          if (salaEncontrada != null) break;
+        }
+
+        if (mounted) {
           setState(() {
-            _dadosSala = data['sala'][0];
-            _isLoading = false;
-            _hasFetchError = false;
+            if (salaEncontrada != null && loteEncontrado != null) {
+              _dadosSala = {
+                'idSala': salaEncontrada.idSala,
+                'nomeSala': salaEncontrada.nomeSala,
+                'idLote': loteEncontrado.idLote,
+                'dataInicio': loteEncontrado.dataInicio,
+                'status': loteEncontrado.status,
+                'nomeCogumelo': loteEncontrado.nomeCogumelo,
+                'nomeFaseCultivo': loteEncontrado.nomeFaseCultivo,
+                'temperatura': loteEncontrado.temperatura,
+                'umidade': loteEncontrado.umidade,
+                'co2': loteEncontrado.co2,
+              };
+              _isLoading = false;
+              _hasFetchError = false;
+            } else {
+              _hasFetchError = true;
+              _isLoading = false;
+            }
           });
-        } else {
-          debugPrint('Sala está vazia ou nula');
+        }
+      } else {
+        if (mounted) {
           setState(() {
             _hasFetchError = true;
             _isLoading = false;
           });
         }
-      } else {
-        debugPrint('Erro: Status Code ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _hasFetchError = true;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      debugPrint('Exceção ao buscar sala: $e');
-      setState(() {
-        _hasFetchError = true;
-        _isLoading = false;
-      });
     }
   }
 
   Future<void> _alterarStatusAtuador(int idAtuador) async {
-    // calcula o novo status: se estava false, vira 'ativo'; se true, vira 'inativo'
     final bool atual = _atuadoresStatus[idAtuador] ?? false;
     final String novoStatus = !atual ? 'ativo' : 'inativo';
 
@@ -131,96 +166,123 @@ class _SalaPageState extends State<SalaPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['mensagem'].toString().contains('atualizado')) {
-          setState(() {
-            _atuadoresStatus[idAtuador] = !atual;
-          });
+          if (mounted) {
+            setState(() {
+              _atuadoresStatus[idAtuador] = !atual;
+            });
+          }
           await salvarStatusLocal(idAtuador, !atual);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Atuador atualizado com sucesso')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Atuador atualizado com sucesso')),
+            );
+          }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao atualizar atuador')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Erro ao atualizar atuador')),
+            );
+          }
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ${response.statusCode} ao atualizar')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ${response.statusCode} ao atualizar')),
+          );
+        }
       }
     } catch (e) {
-      debugPrint("Erro ao alterar status: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
+      }
     }
   }
 
   Future<void> _finalizarLote() async {
     try {
-      final response = await http.put(
-        Uri.parse('${getApiBaseUrl()}lote.php?idLote=${widget.idLote}'),
+      final response = await http.delete(
+        Uri.parse('${getApiBaseUrl()}framework/lote/deletar/${widget.idLote}'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['message'] == 'Lote finalizado com sucesso') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lote finalizado com sucesso!')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lote finalizado com sucesso!')),
+            );
+          }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao finalizar lote!')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Erro ao finalizar lote!')),
+            );
+          }
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Erro ao conectar ao servidor: ${response.statusCode}',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Erro ao conectar ao servidor: ${response.statusCode}',
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      }
     }
   }
 
   Future<void> _excluirLote() async {
     try {
       final response = await http.delete(
-        Uri.parse('${getApiBaseUrl()}lote.php?idLote=${widget.idLote}'),
+        Uri.parse(
+          '${getApiBaseUrl()}framework/lote/deletar_fisico/${widget.idLote}',
+        ),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['message'] == 'Lote excluido com sucesso') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lote excluido com sucesso!')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lote excluido com sucesso!')),
+            );
+          }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao excluir lote!')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Erro ao excluir lote!')),
+            );
+          }
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Erro ao conectar ao servidor: ${response.statusCode}',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Erro ao conectar ao servidor: ${response.statusCode}',
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      }
     }
   }
 
@@ -229,7 +291,6 @@ class _SalaPageState extends State<SalaPage> {
     return Scaffold(
       backgroundColor: const Color.fromRGBO(234, 234, 234, 1),
       appBar: CustomAppBar(title: widget.nomeSala),
-      drawer: const Drawer(),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -244,7 +305,8 @@ class _SalaPageState extends State<SalaPage> {
                         children: [
                           Expanded(
                             child: RingChart(
-                              temperatura: _dadosSala['temperatura'] ?? '--',
+                              temperatura:
+                                  _dadosSala['temperatura']?.toString() ?? '--',
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -277,7 +339,8 @@ class _SalaPageState extends State<SalaPage> {
                             label: 'Umidade',
                             icon: Icons.water_drop_outlined,
                             percentage: 50,
-                            valueLabel: _dadosSala['umidade'] ?? '--',
+                            valueLabel:
+                                _dadosSala['umidade']?.toString() ?? '--',
                             color: Colors.blueAccent,
                           ),
                           const SizedBox(width: defaultPadding),
@@ -285,7 +348,7 @@ class _SalaPageState extends State<SalaPage> {
                             label: 'Nível CO²',
                             icon: Icons.cloud_outlined,
                             percentage: 50,
-                            valueLabel: _dadosSala['co2'] ?? '--',
+                            valueLabel: _dadosSala['co2']?.toString() ?? '--',
                             color: Colors.orangeAccent,
                           ),
                         ],
@@ -301,30 +364,25 @@ class _SalaPageState extends State<SalaPage> {
                                   ? const Color.fromARGB(255, 97, 247, 28)
                                   : secontaryColor;
 
-                          // Definir ícones e rótulos diferentes para cada atuador
                           IconData icon;
                           String label;
                           switch (idAtuador) {
                             case 1:
-                              icon = Icons.water; // Exemplo: umidificador
+                              icon = Icons.water;
                               label = 'Umidade';
                               break;
-
                             case 2:
-                              icon = Icons.air; // Exemplo: ventilação
+                              icon = Icons.air;
                               label = 'Ventilação';
                               break;
-
                             case 3:
-                              icon = Icons.light_mode; // Exemplo: iluminação
+                              icon = Icons.light_mode;
                               label = 'Iluminação';
                               break;
-
                             case 4:
-                              icon = Icons.ac_unit; // Exemplo: ar condicionado
+                              icon = Icons.ac_unit;
                               label = 'Temperatura';
                               break;
-
                             default:
                               icon = Icons.lightbulb;
                               label = 'Atuador';
@@ -338,9 +396,8 @@ class _SalaPageState extends State<SalaPage> {
                                   shape: const CircleBorder(),
                                   padding: const EdgeInsets.all(20),
                                 ),
-                                onPressed: () async {
-                                  await _alterarStatusAtuador(idAtuador);
-                                },
+                                onPressed:
+                                    () => _alterarStatusAtuador(idAtuador),
                                 child: Icon(
                                   icon,
                                   color: Colors.white,
@@ -389,9 +446,7 @@ class _SalaPageState extends State<SalaPage> {
                             ),
                           ),
                           InkWell(
-                            onTap: () {
-                              modalFinalizaLote();
-                            },
+                            onTap: modalFinalizaLote,
                             child: Container(
                               height: 50,
                               width: MediaQuery.of(context).size.width * 0.38,
@@ -412,9 +467,7 @@ class _SalaPageState extends State<SalaPage> {
                             ),
                           ),
                           InkWell(
-                            onTap: () {
-                              modalExcluirLote();
-                            },
+                            onTap: modalExcluirLote,
                             child: Container(
                               height: 50,
                               width: MediaQuery.of(context).size.width * 0.14,
@@ -430,11 +483,14 @@ class _SalaPageState extends State<SalaPage> {
                         ],
                       ),
                       const SizedBox(height: defaultPadding),
-                      _buildChartSection('Temperatura', TemperatureLinechart()),
+                      _buildChartSection(
+                        'Temperatura',
+                        const TemperatureLinechart(),
+                      ),
                       const SizedBox(height: defaultPadding),
-                      _buildChartSection('Umidade', HumidityLinechart()),
+                      _buildChartSection('Umidade', const HumidityLinechart()),
                       const SizedBox(height: defaultPadding),
-                      _buildChartSection('Co²', Co2Linechart()),
+                      _buildChartSection('Co²', const Co2Linechart()),
                     ],
                   ),
                 ),
@@ -453,7 +509,7 @@ class _SalaPageState extends State<SalaPage> {
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
           Text(
-            '$value',
+            value?.toString() ?? '--',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
@@ -475,8 +531,8 @@ class _SalaPageState extends State<SalaPage> {
     );
   }
 
-  void modalFinalizaLote() async {
-    await showDialog(
+  void modalFinalizaLote() {
+    showDialog(
       barrierDismissible: false,
       barrierColor: Colors.black.withAlpha(100),
       context: context,
@@ -493,7 +549,7 @@ class _SalaPageState extends State<SalaPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text(
                 'Cancelar',
                 style: TextStyle(color: Colors.white),
@@ -501,9 +557,11 @@ class _SalaPageState extends State<SalaPage> {
             ),
             ElevatedButton(
               onPressed: () async {
+                Navigator.of(context).pop();
                 await _finalizarLote();
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
@@ -517,8 +575,8 @@ class _SalaPageState extends State<SalaPage> {
     );
   }
 
-  void modalExcluirLote() async {
-    await showDialog(
+  void modalExcluirLote() {
+    showDialog(
       barrierDismissible: false,
       barrierColor: Colors.black.withAlpha(100),
       context: context,
@@ -535,7 +593,7 @@ class _SalaPageState extends State<SalaPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text(
                 'Cancelar',
                 style: TextStyle(color: Colors.white),
@@ -543,9 +601,11 @@ class _SalaPageState extends State<SalaPage> {
             ),
             ElevatedButton(
               onPressed: () async {
+                Navigator.of(context).pop();
                 await _excluirLote();
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(

@@ -49,7 +49,6 @@ class SalahomeCard extends StatelessWidget {
           child: Column(
             children: [
               Row(
-                // crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     nomeSala,

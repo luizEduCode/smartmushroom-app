@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/criarLote_page.dart';
 import 'package:smartmushroom_app/screen/ip_page.dart';
 import 'package:smartmushroom_app/screen/painelSalas_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/salaHome_card.dart';
+import 'package:smartmushroom_app/screen/sala_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,7 +29,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     fetchSalas();
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchSalas();
     });
   }
@@ -40,47 +42,41 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(Uri.parse('${getApiBaseUrl()}salas.php'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _salas = data['sala'] ?? [];
-          _isLoading = false;
-          _hasError = false;
-        });
-      } else {
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _hasError = true;
-        _isLoading = false;
-      });
-      debugPrint('Error fetching salas: $e');
-    }
-  }
-
-  Future<void> vincularLote(int idSala, int idLote) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${getApiBaseUrl()}salas.php'),
-        body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
+      final response = await http.get(
+        Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
+        headers: {'Accept': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        fetchSalas();
+        final data = jsonDecode(response.body);
+
+        // Parse usando o modelo
+        final salasAtivos = SalaLotesAtivos.fromJson(data);
+        final List<Salas> listaSalas = salasAtivos.salas ?? [];
+
+        if (mounted) {
+          setState(() {
+            _salas = listaSalas;
+            _isLoading = false;
+            _hasError = false;
+          });
+        }
       } else {
-        setState(() {
-          _hasError = true;
-        });
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _hasError = true;
-      });
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+      debugPrint('Error fetching salas: $e');
     }
   }
 
@@ -118,10 +114,10 @@ class _HomePageState extends State<HomePage> {
             children: [
               Column(
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      const SizedBox(width: defaultPadding),
+                      SizedBox(width: defaultPadding),
                       Text(
                         'Olá Colaborador!',
                         style: TextStyle(
@@ -142,7 +138,7 @@ class _HomePageState extends State<HomePage> {
                         builder: (context, snapshot) {
                           return Text(
                             snapshot.data ?? '',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: primaryColor,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -169,46 +165,50 @@ class _HomePageState extends State<HomePage> {
                               const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 200,
                                 crossAxisSpacing: defaultPadding,
-                                mainAxisSpacing: defaultPadding,
-                                childAspectRatio: 1,
+                                childAspectRatio: 1.07,
                               ),
                           itemCount: _salas.length,
                           itemBuilder: (context, index) {
-                            final sala = _salas[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 0),
-                              child: SalahomeCard(
-                                idLote: sala['idLote'].toString(),
-                                nomeSala: sala['nomeSala'] ?? 'Sem nome',
-                                nomeCogumelo: sala['nomeCogumelo'] ?? '',
-                                faseCultivo: sala['nomeFaseCultivo'] ?? '',
-                                temperatura:
-                                    sala['temperatura'] != null
-                                        ? (double.tryParse(
-                                                  sala['temperatura']
-                                                      .toString(),
-                                                ) ??
-                                                0)
-                                            .toStringAsFixed(0)
-                                        : '--',
-                                umidade:
-                                    sala['umidade'] != null
-                                        ? (double.tryParse(
-                                                  sala['umidade'].toString(),
-                                                ) ??
-                                                0)
-                                            .toStringAsFixed(0)
-                                        : '--',
-                                co2:
-                                    sala['co2'] != null
-                                        ? (double.tryParse(
-                                                  sala['co2'].toString(),
-                                                ) ??
-                                                0)
-                                            .toStringAsFixed(0)
-                                        : '--',
-                                status: sala['status'] ?? '',
-                              ),
+                            final sala = _salas[index] as Salas;
+                            // Exibe um card para cada lote ativo na sala
+                            return Column(
+                              children: [
+                                ...?sala.lotes?.map(
+                                  (lote) => GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => SalaPage(
+                                                idSala:
+                                                    sala.idSala?.toString() ??
+                                                    '0',
+                                                idLote:
+                                                    lote.idLote?.toString() ??
+                                                    '0',
+                                                nomeSala:
+                                                    sala.nomeSala ?? 'Sem nome',
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    child: SalahomeCard(
+                                      idLote: lote.idLote?.toString() ?? '0',
+                                      nomeSala: sala.nomeSala ?? 'Sem nome',
+                                      nomeCogumelo: lote.nomeCogumelo ?? '',
+                                      faseCultivo:
+                                          lote.nomeFaseCultivo?.toString() ??
+                                          '',
+                                      temperatura:
+                                          lote.temperatura?.toString() ?? '--',
+                                      umidade: lote.umidade?.toString() ?? '--',
+                                      co2: lote.co2?.toString() ?? '--',
+                                      status: lote.status ?? '',
+                                    ),
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),
@@ -221,7 +221,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => PainelsalasPage(),
+                          builder: (context) => const PainelSalasPage(),
                         ),
                       );
                     },
@@ -240,8 +240,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(defaultPadding),
+                      child: const Padding(
+                        padding: EdgeInsets.all(defaultPadding),
                         child: Column(
                           children: [
                             Row(
@@ -254,7 +254,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ],
                             ),
-                            const Text(
+                            Text(
                               'Painel Salas',
                               style: TextStyle(
                                 color: Colors.white,
@@ -271,7 +271,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CriarLotePage(),
+                          builder: (context) => const CriarLotePage(),
                         ),
                       );
                     },
@@ -290,8 +290,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(defaultPadding),
+                      child: const Padding(
+                        padding: EdgeInsets.all(defaultPadding),
                         child: Column(
                           children: [
                             Row(
@@ -300,7 +300,7 @@ class _HomePageState extends State<HomePage> {
                                 Icon(Icons.add, size: 90, color: Colors.white),
                               ],
                             ),
-                            const Text(
+                            Text(
                               'Criar Lote',
                               style: TextStyle(
                                 color: Colors.white,
@@ -314,7 +314,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-              SizedBox(height: defaultPadding),
+              const SizedBox(height: defaultPadding),
             ],
           ),
         ),

@@ -3,51 +3,58 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
 import 'package:smartmushroom_app/screen/criarLote_page.dart';
 
-class PainelsalasPage extends StatefulWidget {
-  const PainelsalasPage({super.key});
+class PainelSalasPage extends StatefulWidget {
+  const PainelSalasPage({super.key});
 
   @override
-  State<PainelsalasPage> createState() => _PainelsalasPageState();
+  State<PainelSalasPage> createState() => _PainelSalasPageState();
 }
 
-class _PainelsalasPageState extends State<PainelsalasPage> {
+class _PainelSalasPageState extends State<PainelSalasPage> {
   late Timer _timer;
-  List _salas = []; // Lista para armazenar os dados das salas
-  bool _isLoading = true; // Indica se está carregando os dados
-  bool _hasError = false; // Indica se houve erro na requisição
+  List<Salas> _salas = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    fetchSalas(); // Carrega os dados iniciais
+    fetchSalas();
 
-    // Atualiza automaticamente os dados a cada 10 segundos
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchSalas();
     });
   }
 
   @override
   void dispose() {
-    _timer.cancel(); // Cancela o Timer ao sair da tela
+    _timer.cancel();
     super.dispose();
   }
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(Uri.parse('${getApiBaseUrl()}salas.php'));
+      final response = await http.get(
+        Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
+        headers: {'Accept': 'application/json'},
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final salasComLotes = SalaLotesAtivos.fromJson(data);
+
         if (mounted) {
           setState(() {
-            _salas = data['sala'] ?? [];
+            _salas = salasComLotes.salas ?? [];
             _isLoading = false;
             _hasError = false;
+            _errorMessage = null;
           });
         }
       } else {
@@ -55,6 +62,7 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
           setState(() {
             _hasError = true;
             _isLoading = false;
+            _errorMessage = 'Sem lotes ativos';
           });
         }
       }
@@ -63,39 +71,22 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
         setState(() {
           _hasError = true;
           _isLoading = false;
+          _errorMessage = 'Falha na conexão: ${e.toString()}';
         });
       }
     }
   }
 
-  // Adicionei depois de subir no Drive - 21:43 23/03/2025
-  Future<void> vincularLote(int idSala, int idLote) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${getApiBaseUrl()}salas.php'),
-        body: {'idSala': idSala.toString(), 'idLote': idLote.toString()},
-      );
-
-      if (response.statusCode == 200) {
-        // Atualiza a lista de salas
-        fetchSalas();
-      } else {
-        setState(() {
-          _hasError = true;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _hasError = true;
-      });
+  Lotes? _getPrimeiroLoteAtivo(Salas sala) {
+    if (sala.lotes != null && sala.lotes!.isNotEmpty) {
+      return sala.lotes!.first;
     }
+    return null;
   }
-  // -------------- Acaba aqui -------------- //
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //alterando o app bar
       appBar: const CustomAppBar(title: 'Painel de Salas'),
       body: Padding(
         padding: const EdgeInsets.all(10),
@@ -105,41 +96,68 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _hasError
-                  ? Center(child: Text('Erro ao carregar dados'))
+                  ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage ?? 'Erro ao carregar dados',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: fetchSalas,
+                          child: const Text('Tentar Novamente'),
+                        ),
+                      ],
+                    ),
+                  )
+                  : _salas.isEmpty
+                  ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.meeting_room_outlined,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Nenhuma sala com lotes ativos',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
                   : ListView.builder(
                     itemCount: _salas.length,
                     itemBuilder: (context, index) {
                       final sala = _salas[index];
+                      final lote = _getPrimeiroLoteAtivo(sala);
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: SalaCard(
-                          nomeSala: sala['nomeSala'] ?? 'Sem nome',
-                          nomeCogumelo: sala['nomeCogumelo'] ?? '',
-                          faseCultivo: sala['nomeFaseCultivo'] ?? '',
-                          dataInicio: sala['dataInicio'] ?? '',
-                          idLote: sala['idLote'].toString(),
-                          temperatura:
-                              sala['temperatura'] != null
-                                  ? double.tryParse(
-                                        sala['temperatura'].toString(),
-                                      )?.toStringAsFixed(0) ??
-                                      '--'
-                                  : '--',
-                          umidade:
-                              sala['umidade'] != null
-                                  ? double.tryParse(
-                                        sala['umidade'].toString(),
-                                      )?.toStringAsFixed(0) ??
-                                      '--'
-                                  : '--',
-                          co2:
-                              sala['co2'] != null
-                                  ? double.tryParse(
-                                        sala['co2'].toString(),
-                                      )?.toStringAsFixed(0) ??
-                                      '--'
-                                  : '--',
-                          status: sala['status'] ?? '',
+                          nomeSala: sala.nomeSala ?? 'Sem nome',
+                          nomeCogumelo:
+                              lote?.nomeCogumelo ?? 'Nenhum lote ativo',
+                          faseCultivo:
+                              lote?.nomeFaseCultivo?.toString() ?? '--',
+                          dataInicio: lote?.dataInicio ?? '--',
+                          idLote: lote?.idLote?.toString() ?? '0',
+                          temperatura: lote?.temperatura?.toString() ?? '--',
+                          umidade: lote?.umidade?.toString() ?? '--',
+                          co2: lote?.co2?.toString() ?? '--',
+                          status: lote?.status ?? 'inativo',
+                          idSala: sala.idSala?.toString() ?? '0',
                         ),
                       );
                     },
@@ -147,15 +165,15 @@ class _PainelsalasPageState extends State<PainelsalasPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: secontaryColor,
+        backgroundColor: secontaryColor, // Corrigido para secondaryColor
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CriarLotePage()),
           );
         },
-        tooltip: 'Increment',
-        child: Icon(Icons.add, color: Colors.white),
+        tooltip: 'Criar Novo Lote',
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

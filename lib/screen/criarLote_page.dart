@@ -1,3 +1,540 @@
+// import 'dart:async';
+// import 'dart:convert';
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:smartmushroom_app/constants.dart';
+// import 'package:smartmushroom_app/screen/sala_page.dart';
+// import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+// import 'package:smartmushroom_app/models/fases_cultivo_model.dart';
+// import 'package:smartmushroom_app/models/cogumelos_model.dart';
+// import 'package:smartmushroom_app/models/salas_disponiveis_model.dart';
+
+// class CriarLotePage extends StatefulWidget {
+//   const CriarLotePage({super.key});
+
+//   @override
+//   State<CriarLotePage> createState() => _CriarLotePageState();
+// }
+
+// class _CriarLotePageState extends State<CriarLotePage> {
+//   List<SalaDisponivel> _salasFinalizadas = [];
+//   SalaDisponivel? _selectedSala;
+//   bool _loadingSalas = true;
+//   String? _erroSalas;
+
+//   List<cogumelos> _mushroomTypes = [];
+//   List<fases_cultivo> _cultivationPhases = [];
+//   cogumelos? _selectedMushroom;
+//   fases_cultivo? _selectedPhase;
+//   bool _loadingMushrooms = true;
+//   bool _loadingPhases = true;
+//   String? _erroMushrooms;
+//   String? _erroPhases;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _carregarSalasFinalizadas();
+//     _carregarTiposCogumelos();
+//   }
+
+//   Future<void> _carregarSalasFinalizadas() async {
+//     setState(() {
+//       _loadingSalas = true;
+//       _erroSalas = null;
+//     });
+
+//     try {
+//       final url = Uri.parse(
+//         "${getApiBaseUrl()}framework/lote/listarSalasDisponiveis",
+//       );
+//       final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+//       if (response.statusCode == 200) {
+//         final dynamic data = jsonDecode(response.body);
+
+//         // Verificar se a resposta é uma lista diretamente
+//         if (data is List) {
+//           _salasFinalizadas =
+//               data.map((json) => SalaDisponivel.fromJson(json)).toList();
+//         }
+//         // Verificar se a resposta é um mapa com estrutura esperada
+//         else if (data is Map<String, dynamic>) {
+//           if (data['success'] == true) {
+//             List<dynamic> salasList = [];
+
+//             if (data['data'] is List) {
+//               salasList = data['data'];
+//             } else if (data['data'] is Map &&
+//                 data['data']['salas_disponiveis'] is List) {
+//               salasList = data['data']['salas_disponiveis'];
+//             } else if (data['salas_disponiveis'] is List) {
+//               salasList = data['salas_disponiveis'];
+//             }
+
+//             _salasFinalizadas =
+//                 salasList.map((json) => SalaDisponivel.fromJson(json)).toList();
+//           } else {
+//             _erroSalas = data['message'] ?? 'Erro ao carregar salas';
+//           }
+//         } else {
+//           _erroSalas = 'Formato de resposta inesperado da API';
+//         }
+//       } else {
+//         _erroSalas = 'Erro HTTP ${response.statusCode}';
+//       }
+//     } catch (e) {
+//       _erroSalas = 'Falha ao carregar salas: $e';
+//     } finally {
+//       if (mounted) setState(() => _loadingSalas = false);
+//     }
+//   }
+
+//   Future<void> _carregarTiposCogumelos() async {
+//     setState(() {
+//       _loadingMushrooms = true;
+//       _erroMushrooms = null;
+//     });
+
+//     try {
+//       final url = Uri.parse("${getApiBaseUrl()}framework/cogumelo/listarTodos");
+//       final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+//       if (response.statusCode == 200) {
+//         final dynamic data = jsonDecode(response.body);
+
+//         // Verificar se a resposta é uma lista diretamente
+//         if (data is List) {
+//           _mushroomTypes =
+//               data.map((json) {
+//                 try {
+//                   return cogumelos.fromJson(json);
+//                 } catch (_) {
+//                   return cogumelos(
+//                     idCogumelo: 0,
+//                     nomeCogumelo: 'Erro no parsing',
+//                     descricao: 'Erro no parsing',
+//                   );
+//                 }
+//               }).toList();
+//         }
+//         // Verificar se a resposta é um mapa com estrutura esperada
+//         else if (data is Map<String, dynamic>) {
+//           if (data['success'] == true) {
+//             List<dynamic> cogumelosList = [];
+
+//             if (data['data'] is List) {
+//               cogumelosList = data['data'];
+//             } else if (data['data'] is Map &&
+//                 data['data']['cogumelos'] is List) {
+//               cogumelosList = data['data']['cogumelos'];
+//             } else if (data['cogumelos'] is List) {
+//               cogumelosList = data['cogumelos'];
+//             }
+
+//             _mushroomTypes =
+//                 cogumelosList.map((json) {
+//                   try {
+//                     return cogumelos.fromJson(json);
+//                   } catch (_) {
+//                     return cogumelos(
+//                       idCogumelo: 0,
+//                       nomeCogumelo: 'Erro no parsing',
+//                       descricao: 'Erro no parsing',
+//                     );
+//                   }
+//                 }).toList();
+//           } else {
+//             _erroMushrooms = data['message'] ?? 'Erro ao carregar cogumelos';
+//           }
+//         } else {
+//           _erroMushrooms = 'Formato de resposta inesperado da API';
+//         }
+//       } else {
+//         _erroMushrooms = 'Erro HTTP ${response.statusCode}';
+//       }
+//     } catch (e) {
+//       _erroMushrooms = 'Falha ao carregar cogumelos: $e';
+//     } finally {
+//       if (mounted) setState(() => _loadingMushrooms = false);
+//     }
+//   }
+
+//   Future<void> _carregarFasesCultivo() async {
+//     if (_selectedMushroom == null) return;
+
+//     setState(() {
+//       _loadingPhases = true;
+//       _erroPhases = null;
+//     });
+
+//     try {
+//       final url = Uri.parse(
+//         "${getApiBaseUrl()}framework/faseCultivo/listarPorCogumelo/${_selectedMushroom!.idCogumelo}",
+//       );
+//       final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+//       if (response.statusCode == 200) {
+//         final dynamic data = jsonDecode(response.body);
+
+//         // Verificar se a resposta é uma lista diretamente
+//         if (data is List) {
+//           _cultivationPhases =
+//               data.map((json) {
+//                 try {
+//                   return fases_cultivo.fromJson(json);
+//                 } catch (_) {
+//                   return fases_cultivo(
+//                     idFaseCultivo: 0,
+//                     nomeFaseCultivo: 'Erro no parsing',
+//                   );
+//                 }
+//               }).toList();
+//         }
+//         // Verificar se a resposta é um mapa com estrutura esperada
+//         else if (data is Map<String, dynamic>) {
+//           if (data['success'] == true) {
+//             List<dynamic> fasesList = [];
+
+//             if (data['data'] is List) {
+//               fasesList = data['data'];
+//             } else if (data['data'] is Map && data['data']['fases'] is List) {
+//               fasesList = data['data']['fases'];
+//             } else if (data['fases'] is List) {
+//               fasesList = data['fases'];
+//             }
+
+//             _cultivationPhases =
+//                 fasesList.map((json) {
+//                   try {
+//                     return fases_cultivo.fromJson(json);
+//                   } catch (_) {
+//                     return fases_cultivo(
+//                       idFaseCultivo: 0,
+//                       nomeFaseCultivo: 'Erro no parsing',
+//                     );
+//                   }
+//                 }).toList();
+//           } else {
+//             _erroPhases = data['message'] ?? 'Erro ao carregar fases';
+//           }
+//         } else {
+//           _erroPhases = 'Formato de resposta inesperado da API';
+//         }
+//       } else {
+//         _erroPhases = 'Erro HTTP ${response.statusCode}';
+//       }
+//     } catch (e) {
+//       _erroPhases = 'Falha ao carregar fases: $e';
+//     } finally {
+//       if (mounted) setState(() => _loadingPhases = false);
+//     }
+//   }
+
+//   Future<void> _criarLote() async {
+//     if (_selectedSala == null ||
+//         _selectedMushroom == null ||
+//         _selectedPhase == null) {
+//       ScaffoldMessenger.of(
+//         context,
+//       ).showSnackBar(const SnackBar(content: Text('Preencha todos os campos')));
+//       return;
+//     }
+
+//     try {
+//       final url = Uri.parse('${getApiBaseUrl()}framework/lote/adicionar');
+
+//       debugPrint('Enviando para: $url');
+
+//       // Obter a data atual no formato YYYY-MM-DD
+//       final now = DateTime.now();
+//       final dataInicio =
+//           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+//       final response = await http.post(
+//         url,
+//         headers: {'Accept': 'application/json'},
+//         body: {
+//           'idSala': _selectedSala!.idSala.toString(),
+//           'idCogumelo': _selectedMushroom!.idCogumelo.toString(),
+//           'dataInicio': dataInicio,
+//           'status': 'ativo',
+//           'faseCultivo':
+//               _selectedPhase!.idFaseCultivo.toString(), // ID da fase de cultivo
+//         },
+//       );
+
+//       debugPrint('Status: ${response.statusCode}');
+//       debugPrint('Resposta: ${response.body}');
+
+//       if (response.statusCode >= 200 && response.statusCode < 300) {
+//         final responseData = jsonDecode(response.body);
+
+//         if (responseData['success'] == true) {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(content: Text('Lote criado com sucesso!')),
+//           );
+
+//           // Extrair o ID do lote da resposta
+//           String idLote = '0';
+
+//           // A API retorna o ID do lote criado no campo 'idLote'
+//           if (responseData['idLote'] != null) {
+//             idLote = responseData['idLote'].toString();
+//           }
+//           // Ou pode estar em 'data' -> 'idLote' (dependendo da estrutura)
+//           else if (responseData['data'] != null &&
+//               responseData['data'] is Map) {
+//             idLote = responseData['data']['idLote']?.toString() ?? '0';
+//           }
+
+//           debugPrint('ID do Lote criado: $idLote');
+
+//           // Navegar para a página da sala
+//           Navigator.pushReplacement(
+//             context,
+//             MaterialPageRoute(
+//               builder:
+//                   (context) => SalaPage(
+//                     idLote: idLote,
+//                     nomeSala: _selectedSala!.nomeSala,
+//                   ),
+//             ),
+//           );
+//         } else {
+//           throw Exception(responseData['message'] ?? 'Erro ao criar lote');
+//         }
+//       } else {
+//         throw Exception('Erro HTTP ${response.statusCode}: ${response.body}');
+//       }
+//     } catch (e) {
+//       debugPrint('Erro completo: $e');
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('Erro ao criar lote: ${e.toString()}')),
+//       );
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: const CustomAppBar(title: 'Criar Novo Lote'),
+//       body: SingleChildScrollView(
+//         padding: const EdgeInsets.all(16),
+//         child: Column(
+//           children: [
+//             Card(
+//               elevation: 4,
+//               shape: RoundedRectangleBorder(
+//                 borderRadius: BorderRadius.circular(16),
+//               ),
+//               child: Padding(
+//                 padding: const EdgeInsets.symmetric(
+//                   horizontal: 16,
+//                   vertical: 24,
+//                 ),
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.stretch,
+//                   children: [
+//                     const Center(
+//                       child: Text(
+//                         'Dados do Lote',
+//                         style: TextStyle(
+//                           fontSize: 20,
+//                           fontWeight: FontWeight.bold,
+//                         ),
+//                       ),
+//                     ),
+//                     const SizedBox(height: 16),
+
+//                     // Dropdown Sala
+//                     _buildSalaDropdown(),
+//                     const SizedBox(height: 16),
+
+//                     // Dropdown Cogumelo
+//                     _buildCogumeloDropdown(),
+//                     const SizedBox(height: 16),
+
+//                     // Dropdown Fase
+//                     _buildFaseDropdown(),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//             const SizedBox(height: 24),
+
+//             // Botão Criar Lote
+//             ElevatedButton(
+//               onPressed: _criarLote,
+//               style: ElevatedButton.styleFrom(
+//                 backgroundColor: Colors.green,
+//                 minimumSize: const Size(double.infinity, 50),
+//               ),
+//               child: const Text(
+//                 'Criar Lote',
+//                 style: TextStyle(color: Colors.white),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _buildSalaDropdown() {
+//     if (_loadingSalas) {
+//       return const Column(
+//         children: [
+//           LinearProgressIndicator(),
+//           SizedBox(height: 8),
+//           Text('Carregando salas...', style: TextStyle(color: Colors.grey)),
+//         ],
+//       );
+//     }
+
+//     if (_erroSalas != null) {
+//       return Text(
+//         _erroSalas!,
+//         style: const TextStyle(color: Colors.red),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     if (_salasFinalizadas.isEmpty) {
+//       return const Text(
+//         'Nenhuma sala disponível',
+//         style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     return DropdownButtonFormField<SalaDisponivel>(
+//       decoration: const InputDecoration(
+//         labelText: 'Sala Disponível',
+//         border: OutlineInputBorder(),
+//         prefixIcon: Icon(Icons.meeting_room),
+//       ),
+//       value: _selectedSala,
+//       items:
+//           _salasFinalizadas.map((sala) {
+//             return DropdownMenuItem<SalaDisponivel>(
+//               value: sala,
+//               child: Text(sala.nomeSala),
+//             );
+//           }).toList(),
+//       onChanged: (value) => setState(() => _selectedSala = value),
+//       hint: const Text("Selecione uma sala"),
+//     );
+//   }
+
+//   Widget _buildCogumeloDropdown() {
+//     if (_loadingMushrooms) {
+//       return const Column(
+//         children: [
+//           LinearProgressIndicator(),
+//           SizedBox(height: 8),
+//           Text('Carregando cogumelos...', style: TextStyle(color: Colors.grey)),
+//         ],
+//       );
+//     }
+
+//     if (_erroMushrooms != null) {
+//       return Text(
+//         _erroMushrooms!,
+//         style: const TextStyle(color: Colors.red),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     if (_mushroomTypes.isEmpty) {
+//       return const Text(
+//         'Nenhum cogumelo disponível',
+//         style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     return DropdownButtonFormField<cogumelos>(
+//       decoration: const InputDecoration(
+//         labelText: 'Tipo de Cogumelo',
+//         border: OutlineInputBorder(),
+//         prefixIcon: Icon(Icons.eco),
+//       ),
+//       value: _selectedMushroom,
+//       items:
+//           _mushroomTypes.map((cogumelo) {
+//             return DropdownMenuItem<cogumelos>(
+//               value: cogumelo,
+//               child: Text(cogumelo.nomeCogumelo),
+//             );
+//           }).toList(),
+//       onChanged: (value) {
+//         setState(() {
+//           _selectedMushroom = value;
+//           _selectedPhase = null;
+//           _cultivationPhases = [];
+//         });
+//         _carregarFasesCultivo();
+//       },
+//       hint: const Text("Selecione um cogumelo"),
+//     );
+//   }
+
+//   Widget _buildFaseDropdown() {
+//     if (_selectedMushroom == null) {
+//       return const Text(
+//         "Selecione primeiro um cogumelo",
+//         style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     if (_loadingPhases) {
+//       return const Column(
+//         children: [
+//           LinearProgressIndicator(),
+//           SizedBox(height: 8),
+//           Text('Carregando fases...', style: TextStyle(color: Colors.grey)),
+//         ],
+//       );
+//     }
+
+//     if (_erroPhases != null) {
+//       return Text(
+//         _erroPhases!,
+//         style: const TextStyle(color: Colors.red),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     if (_cultivationPhases.isEmpty) {
+//       return const Text(
+//         'Nenhuma fase disponível para este cogumelo',
+//         style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+//         textAlign: TextAlign.center,
+//       );
+//     }
+
+//     return DropdownButtonFormField<fases_cultivo>(
+//       decoration: const InputDecoration(
+//         labelText: 'Fase de Cultivo',
+//         border: OutlineInputBorder(),
+//         prefixIcon: Icon(Icons.timeline),
+//       ),
+//       value: _selectedPhase,
+//       items:
+//           _cultivationPhases.map((fase) {
+//             return DropdownMenuItem<fases_cultivo>(
+//               value: fase,
+//               child: Text(fase.nomeFaseCultivo ?? 'Fase sem nome'),
+//             );
+//           }).toList(),
+//       onChanged: (value) => setState(() => _selectedPhase = value),
+//       hint: const Text("Selecione uma fase"),
+//     );
+//   }
+// }
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -5,6 +542,9 @@ import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+import 'package:smartmushroom_app/models/fases_cultivo_model.dart';
+import 'package:smartmushroom_app/models/cogumelos_model.dart';
+import 'package:smartmushroom_app/models/salas_disponiveis_model.dart';
 
 class CriarLotePage extends StatefulWidget {
   const CriarLotePage({super.key});
@@ -14,16 +554,15 @@ class CriarLotePage extends StatefulWidget {
 }
 
 class _CriarLotePageState extends State<CriarLotePage> {
-  List<Map<String, dynamic>> _salasFinalizadas = [];
-  String? _selectedSala;
+  List<SalaDisponivel> _salasFinalizadas = [];
+  SalaDisponivel? _selectedSala;
   bool _loadingSalas = true;
   String? _erroSalas;
 
-  // Substitua as listas fixas por estas:
-  List<Map<String, dynamic>> _mushroomTypes = [];
-  List<Map<String, dynamic>> _cultivationPhases = [];
-  String? _selectedMushroom;
-  String? _selectedPhase;
+  List<cogumelos> _mushroomTypes = [];
+  List<fases_cultivo> _cultivationPhases = [];
+  cogumelos? _selectedMushroom;
+  fases_cultivo? _selectedPhase;
   bool _loadingMushrooms = true;
   bool _loadingPhases = true;
   String? _erroMushrooms;
@@ -34,71 +573,6 @@ class _CriarLotePageState extends State<CriarLotePage> {
     super.initState();
     _carregarSalasFinalizadas();
     _carregarTiposCogumelos();
-    _carregarFasesCultivo();
-  }
-
-  Future<void> _carregarTiposCogumelos() async {
-    setState(() {
-      _loadingMushrooms = true;
-      _erroMushrooms = null;
-    });
-
-    try {
-      final url = Uri.parse(
-        '${getApiBaseUrl()}lote.php?action=tipos-cogumelos',
-      );
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _mushroomTypes = List<Map<String, dynamic>>.from(data['data']);
-            _loadingMushrooms = false;
-          });
-        } else {
-          throw Exception(data['message'] ?? 'Erro ao carregar cogumelos');
-        }
-      } else {
-        throw Exception('Erro HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      setState(() {
-        _erroMushrooms = 'Falha ao carregar cogumelos: ${e.toString()}';
-        _loadingMushrooms = false;
-      });
-    }
-  }
-
-  Future<void> _carregarFasesCultivo() async {
-    setState(() {
-      _loadingPhases = true;
-      _erroPhases = null;
-    });
-
-    try {
-      final url = Uri.parse('${getApiBaseUrl()}lote.php?action=fases-cultivo');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _cultivationPhases = List<Map<String, dynamic>>.from(data['data']);
-            _loadingPhases = false;
-          });
-        } else {
-          throw Exception(data['message'] ?? 'Erro ao carregar fases');
-        }
-      } else {
-        throw Exception('Erro HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      setState(() {
-        _erroPhases = 'Falha ao carregar fases: ${e.toString()}';
-        _loadingPhases = false;
-      });
-    }
   }
 
   Future<void> _carregarSalasFinalizadas() async {
@@ -109,40 +583,188 @@ class _CriarLotePageState extends State<CriarLotePage> {
 
     try {
       final url = Uri.parse(
-        '${getApiBaseUrl()}lote.php?action=salas-disponiveis',
+        "${getApiBaseUrl()}framework/lote/listarSalasDisponiveis",
       );
-      debugPrint('Tentando acessar: $url');
-
-      final response = await http
-          .get(url, headers: {'Accept': 'application/json'})
-          .timeout(const Duration(seconds: 10));
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _salasFinalizadas = List<Map<String, dynamic>>.from(
-              data['data']['salas_disponiveis'],
-            );
-            _loadingSalas = false;
-          });
+        final dynamic data = jsonDecode(response.body);
+
+        // Verificar se a resposta é uma lista diretamente
+        if (data is List) {
+          _salasFinalizadas =
+              data.map((json) => SalaDisponivel.fromJson(json)).toList();
+        }
+        // Verificar se a resposta é um mapa com estrutura esperada
+        else if (data is Map<String, dynamic>) {
+          if (data['success'] == true) {
+            List<dynamic> salasList = [];
+
+            if (data['data'] is List) {
+              salasList = data['data'];
+            } else if (data['data'] is Map &&
+                data['data']['salas_disponiveis'] is List) {
+              salasList = data['data']['salas_disponiveis'];
+            } else if (data['salas_disponiveis'] is List) {
+              salasList = data['salas_disponiveis'];
+            }
+
+            _salasFinalizadas =
+                salasList.map((json) => SalaDisponivel.fromJson(json)).toList();
+          } else {
+            _erroSalas = data['message'] ?? 'Erro ao carregar salas';
+          }
         } else {
-          throw Exception(data['message'] ?? 'Erro na API');
+          _erroSalas = 'Formato de resposta inesperado da API';
         }
       } else {
-        throw Exception('Erro HTTP ${response.statusCode}');
+        _erroSalas = 'Erro HTTP ${response.statusCode}';
       }
-    } on TimeoutException {
-      setState(() {
-        _erroSalas = 'Timeout: Servidor não respondeu';
-        _loadingSalas = false;
-      });
     } catch (e) {
-      setState(() {
-        _erroSalas = 'Falha ao carregar salas: ${e.toString()}';
-        _loadingSalas = false;
-      });
-      debugPrint('Erro detalhado: $e');
+      _erroSalas = 'Falha ao carregar salas: $e';
+    } finally {
+      if (mounted) setState(() => _loadingSalas = false);
+    }
+  }
+
+  Future<void> _carregarTiposCogumelos() async {
+    setState(() {
+      _loadingMushrooms = true;
+      _erroMushrooms = null;
+    });
+
+    try {
+      final url = Uri.parse("${getApiBaseUrl()}framework/cogumelo/listarTodos");
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+
+        // Verificar se a resposta é uma lista diretamente
+        if (data is List) {
+          _mushroomTypes =
+              data.map((json) {
+                try {
+                  return cogumelos.fromJson(json);
+                } catch (_) {
+                  return cogumelos(
+                    idCogumelo: 0,
+                    nomeCogumelo: 'Erro no parsing',
+                    descricao: 'Erro no parsing',
+                  );
+                }
+              }).toList();
+        }
+        // Verificar se a resposta é um mapa com estrutura esperada
+        else if (data is Map<String, dynamic>) {
+          if (data['success'] == true) {
+            List<dynamic> cogumelosList = [];
+
+            if (data['data'] is List) {
+              cogumelosList = data['data'];
+            } else if (data['data'] is Map &&
+                data['data']['cogumelos'] is List) {
+              cogumelosList = data['data']['cogumelos'];
+            } else if (data['cogumelos'] is List) {
+              cogumelosList = data['cogumelos'];
+            }
+
+            _mushroomTypes =
+                cogumelosList.map((json) {
+                  try {
+                    return cogumelos.fromJson(json);
+                  } catch (_) {
+                    return cogumelos(
+                      idCogumelo: 0,
+                      nomeCogumelo: 'Erro no parsing',
+                      descricao: 'Erro no parsing',
+                    );
+                  }
+                }).toList();
+          } else {
+            _erroMushrooms = data['message'] ?? 'Erro ao carregar cogumelos';
+          }
+        } else {
+          _erroMushrooms = 'Formato de resposta inesperado da API';
+        }
+      } else {
+        _erroMushrooms = 'Erro HTTP ${response.statusCode}';
+      }
+    } catch (e) {
+      _erroMushrooms = 'Falha ao carregar cogumelos: $e';
+    } finally {
+      if (mounted) setState(() => _loadingMushrooms = false);
+    }
+  }
+
+  Future<void> _carregarFasesCultivo() async {
+    if (_selectedMushroom == null) return;
+
+    setState(() {
+      _loadingPhases = true;
+      _erroPhases = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        "${getApiBaseUrl()}framework/faseCultivo/listarPorCogumelo/${_selectedMushroom!.idCogumelo}",
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+
+        // Verificar se a resposta é uma lista diretamente
+        if (data is List) {
+          _cultivationPhases =
+              data.map((json) {
+                try {
+                  return fases_cultivo.fromJson(json);
+                } catch (_) {
+                  return fases_cultivo(
+                    idFaseCultivo: 0,
+                    nomeFaseCultivo: 'Erro no parsing',
+                  );
+                }
+              }).toList();
+        }
+        // Verificar se a resposta é um mapa com estrutura esperada
+        else if (data is Map<String, dynamic>) {
+          if (data['success'] == true) {
+            List<dynamic> fasesList = [];
+
+            if (data['data'] is List) {
+              fasesList = data['data'];
+            } else if (data['data'] is Map && data['data']['fases'] is List) {
+              fasesList = data['data']['fases'];
+            } else if (data['fases'] is List) {
+              fasesList = data['fases'];
+            }
+
+            _cultivationPhases =
+                fasesList.map((json) {
+                  try {
+                    return fases_cultivo.fromJson(json);
+                  } catch (_) {
+                    return fases_cultivo(
+                      idFaseCultivo: 0,
+                      nomeFaseCultivo: 'Erro no parsing',
+                    );
+                  }
+                }).toList();
+          } else {
+            _erroPhases = data['message'] ?? 'Erro ao carregar fases';
+          }
+        } else {
+          _erroPhases = 'Formato de resposta inesperado da API';
+        }
+      } else {
+        _erroPhases = 'Erro HTTP ${response.statusCode}';
+      }
+    } catch (e) {
+      _erroPhases = 'Falha ao carregar fases: $e';
+    } finally {
+      if (mounted) setState(() => _loadingPhases = false);
     }
   }
 
@@ -157,66 +779,50 @@ class _CriarLotePageState extends State<CriarLotePage> {
     }
 
     try {
-      // Encontra a sala selecionada
-      final salaSelecionada = _salasFinalizadas.firstWhere(
-        (sala) => sala['nomeSala'] == _selectedSala,
+      final url = Uri.parse('${getApiBaseUrl()}framework/lote/adicionar');
+      final now = DateTime.now();
+      final dataInicio =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final response = await http.post(
+        url,
+        headers: {'Accept': 'application/json'},
+        body: {
+          'idSala': _selectedSala!.idSala.toString(),
+          'idCogumelo': _selectedMushroom!.idCogumelo.toString(),
+          'dataInicio': dataInicio,
+          'status': 'ativo',
+          'faseCultivo': _selectedPhase!.idFaseCultivo.toString(),
+        },
       );
 
-      final response = await http
-          .post(
-            Uri.parse('${getApiBaseUrl()}lote.php'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'idSala': salaSelecionada['idSala'],
-              'idCogumelo': int.parse(_selectedMushroom!),
-              'idFase': int.parse(_selectedPhase!),
-              // Valores padrão comentados (caso precise usar depois)
-              // 'temperatura': 25.0,
-              // 'umidade': 70.0,
-              // 'co2': 800,
-              // 'luz': 1,
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+      // Se o status for 201, o lote foi criado com sucesso
+      if (response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
 
-      final responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (responseData['success'] == true) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => SalaPage(
-                    idLote: responseData['idLote'].toString(),
-                    nomeSala: _selectedSala!,
-                  ),
-            ),
-          );
-        } else {
-          throw Exception(responseData['message'] ?? 'Erro ao criar lote');
-        }
-      } else {
-        throw Exception(
-          'Erro HTTP ${response.statusCode}: ${responseData['message']}',
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lote criado com sucesso!')),
         );
+
+        // Tentar extrair o ID do lote ou usar um valor padrão
+        final idLote = responseData['idLote']?.toString() ?? '0';
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    SalaPage(idLote: idLote, nomeSala: _selectedSala!.nomeSala),
+          ),
+        );
+      } else {
+        throw Exception('Erro HTTP ${response.statusCode}: ${response.body}');
       }
-    } on FormatException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Formato de resposta inválido do servidor'),
-        ),
-      );
-      debugPrint('FormatException: $e');
-    } on TimeoutException {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Timeout: Servidor não respondeu')),
-      );
     } catch (e) {
+      debugPrint('Erro: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao criar lote: ${e.toString()}')),
       );
-      debugPrint('Erro ao criar lote: $e');
     }
   }
 
@@ -228,7 +834,6 @@ class _CriarLotePageState extends State<CriarLotePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Card para Sala
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -252,166 +857,23 @@ class _CriarLotePageState extends State<CriarLotePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Dropdown Sala (consulta API)
-                    _loadingSalas
-                        ? const LinearProgressIndicator()
-                        : _erroSalas != null
-                        ? Text(
-                          _erroSalas!,
-                          style: const TextStyle(color: Colors.red),
-                        )
-                        : DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            labelText: 'Sala Disponível',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.meeting_room),
-                            filled: true,
-                            fillColor:
-                                (_loadingSalas ||
-                                        _erroSalas != null ||
-                                        _salasFinalizadas.isEmpty)
-                                    ? Colors.grey[200]
-                                    : null,
-                          ),
-                          value: _selectedSala,
-                          items:
-                              _salasFinalizadas.map((sala) {
-                                return DropdownMenuItem<String>(
-                                  value: sala['nomeSala'],
-                                  child: Text(sala['nomeSala']),
-                                );
-                              }).toList(),
-                          // Isso é o que realmente desabilita o dropdown
-                          onChanged:
-                              (_loadingSalas ||
-                                      _erroSalas != null ||
-                                      _salasFinalizadas.isEmpty)
-                                  ? null
-                                  : (value) =>
-                                      setState(() => _selectedSala = value),
-                          // Dicas condicionais
-                          hint:
-                              _loadingSalas
-                                  ? const Text("Carregando salas...")
-                                  : _erroSalas != null
-                                  ? Text(_erroSalas!)
-                                  : _salasFinalizadas.isEmpty
-                                  ? const Text("Nenhuma sala disponível")
-                                  : const Text("Selecione uma sala"),
-                          // Texto quando desabilitado
-                          disabledHint:
-                              _loadingSalas
-                                  ? const Text("Carregando salas...")
-                                  : _erroSalas != null
-                                  ? Text(_erroSalas!)
-                                  : const Text("Nenhuma sala disponível"),
-                          // Ícone condicional
-                          icon:
-                              _loadingSalas
-                                  ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : const Icon(Icons.arrow_drop_down),
-                        ),
-                    const SizedBox(height: 16),
-                    // Dropdown Cogumelo (agora dinâmico)
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Tipo de Cogumelo',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.eco),
-                      ),
-                      value: _selectedMushroom,
-                      items:
-                          _mushroomTypes.map((cogumelo) {
-                            return DropdownMenuItem<String>(
-                              value: cogumelo['idCogumelo'].toString(),
-                              child: Text(cogumelo['nomeCogumelo']),
-                            );
-                          }).toList(),
-                      onChanged:
-                          _loadingMushrooms
-                              ? null
-                              : (value) =>
-                                  setState(() => _selectedMushroom = value),
-                      hint:
-                          _loadingMushrooms
-                              ? const Text("Carregando cogumelos...")
-                              : _erroMushrooms != null
-                              ? Text(_erroMushrooms!)
-                              : const Text("Selecione um cogumelo"),
-                      disabledHint:
-                          _loadingMushrooms
-                              ? const Text("Carregando cogumelos...")
-                              : _erroMushrooms != null
-                              ? Text(_erroMushrooms!)
-                              : const Text("Nenhum cogumelo disponível"),
-                      icon:
-                          _loadingMushrooms
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Icon(Icons.arrow_drop_down),
-                    ),
 
+                    // Dropdown Sala
+                    _buildSalaDropdown(),
                     const SizedBox(height: 16),
 
-                    // Dropdown Fase (agora dinâmico)
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Fase de Cultivo',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.timeline),
-                      ),
-                      value: _selectedPhase,
-                      items:
-                          _cultivationPhases.map((fase) {
-                            return DropdownMenuItem<String>(
-                              value: fase['idFaseCultivo'].toString(),
-                              child: Text(fase['nomeFaseCultivo']),
-                            );
-                          }).toList(),
-                      onChanged:
-                          _loadingPhases
-                              ? null
-                              : (value) =>
-                                  setState(() => _selectedPhase = value),
-                      hint:
-                          _loadingPhases
-                              ? const Text("Carregando fases...")
-                              : _erroPhases != null
-                              ? Text(_erroPhases!)
-                              : const Text("Selecione uma fase"),
-                      disabledHint:
-                          _loadingPhases
-                              ? const Text("Carregando fases...")
-                              : _erroPhases != null
-                              ? Text(_erroPhases!)
-                              : const Text("Nenhuma fase disponível"),
-                      icon:
-                          _loadingPhases
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Icon(Icons.arrow_drop_down),
-                    ),
+                    // Dropdown Cogumelo
+                    _buildCogumeloDropdown(),
+                    const SizedBox(height: 16),
+
+                    // Dropdown Fase
+                    _buildFaseDropdown(),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
+
             // Botão Criar Lote
             ElevatedButton.icon(
               onPressed: _criarLote,
@@ -430,6 +892,159 @@ class _CriarLotePageState extends State<CriarLotePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSalaDropdown() {
+    if (_loadingSalas) {
+      return const Column(
+        children: [
+          LinearProgressIndicator(),
+          SizedBox(height: 8),
+          Text('Carregando salas...', style: TextStyle(color: Colors.grey)),
+        ],
+      );
+    }
+
+    if (_erroSalas != null) {
+      return Text(
+        _erroSalas!,
+        style: const TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    if (_salasFinalizadas.isEmpty) {
+      return const Text(
+        'Nenhuma sala disponível',
+        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return DropdownButtonFormField<SalaDisponivel>(
+      decoration: const InputDecoration(
+        labelText: 'Sala Disponível',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.meeting_room),
+      ),
+      value: _selectedSala,
+      items:
+          _salasFinalizadas.map((sala) {
+            return DropdownMenuItem<SalaDisponivel>(
+              value: sala,
+              child: Text(sala.nomeSala),
+            );
+          }).toList(),
+      onChanged: (value) => setState(() => _selectedSala = value),
+      hint: const Text("Selecione uma sala"),
+    );
+  }
+
+  Widget _buildCogumeloDropdown() {
+    if (_loadingMushrooms) {
+      return const Column(
+        children: [
+          LinearProgressIndicator(),
+          SizedBox(height: 8),
+          Text('Carregando cogumelos...', style: TextStyle(color: Colors.grey)),
+        ],
+      );
+    }
+
+    if (_erroMushrooms != null) {
+      return Text(
+        _erroMushrooms!,
+        style: const TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    if (_mushroomTypes.isEmpty) {
+      return const Text(
+        'Nenhum cogumelo disponível',
+        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return DropdownButtonFormField<cogumelos>(
+      decoration: const InputDecoration(
+        labelText: 'Tipo de Cogumelo',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.eco),
+      ),
+      value: _selectedMushroom,
+      items:
+          _mushroomTypes.map((cogumelo) {
+            return DropdownMenuItem<cogumelos>(
+              value: cogumelo,
+              child: Text(cogumelo.nomeCogumelo),
+            );
+          }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedMushroom = value;
+          _selectedPhase = null;
+          _cultivationPhases = [];
+        });
+        _carregarFasesCultivo();
+      },
+      hint: const Text("Selecione um cogumelo"),
+    );
+  }
+
+  Widget _buildFaseDropdown() {
+    if (_selectedMushroom == null) {
+      return const Text(
+        "Selecione primeiro um cogumelo",
+        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    if (_loadingPhases) {
+      return const Column(
+        children: [
+          LinearProgressIndicator(),
+          SizedBox(height: 8),
+          Text('Carregando fases...', style: TextStyle(color: Colors.grey)),
+        ],
+      );
+    }
+
+    if (_erroPhases != null) {
+      return Text(
+        _erroPhases!,
+        style: const TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    if (_cultivationPhases.isEmpty) {
+      return const Text(
+        'Nenhuma fase disponível para este cogumelo',
+        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return DropdownButtonFormField<fases_cultivo>(
+      decoration: const InputDecoration(
+        labelText: 'Fase de Cultivo',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.timeline),
+      ),
+      value: _selectedPhase,
+      items:
+          _cultivationPhases.map((fase) {
+            return DropdownMenuItem<fases_cultivo>(
+              value: fase,
+              child: Text(fase.nomeFaseCultivo ?? 'Fase sem nome'),
+            );
+          }).toList(),
+      onChanged: (value) => setState(() => _selectedPhase = value),
+      hint: const Text("Selecione uma fase"),
     );
   }
 }

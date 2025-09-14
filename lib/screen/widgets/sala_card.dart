@@ -23,7 +23,8 @@ class SalaCard extends StatelessWidget {
     required this.temperatura,
     required this.umidade,
     required this.co2,
-    required this.status, // novo parâmetro
+    required this.status,
+    required String idSala, // novo parâmetro
   });
 
   // @override
