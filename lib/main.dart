@@ -7,7 +7,7 @@ import 'package:get_storage/get_storage.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
-  await GetStorage.init(); // Inicializa o GetStorage
+  await GetStorage.init();
   runApp(const MyApp());
 }
 

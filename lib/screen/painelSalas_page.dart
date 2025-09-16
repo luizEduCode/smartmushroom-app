@@ -165,7 +165,7 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: secontaryColor, // Corrigido para secondaryColor
+        backgroundColor: secontaryColor,
         onPressed: () {
           Navigator.push(
             context,

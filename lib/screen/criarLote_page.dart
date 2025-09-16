@@ -259,7 +259,6 @@ class _CriarLotePageState extends State<CriarLotePage> {
         },
       );
 
-      // Se o status for 201, o lote foi criado com sucesso
       if (response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
 
@@ -267,7 +266,6 @@ class _CriarLotePageState extends State<CriarLotePage> {
           const SnackBar(content: Text('Lote criado com sucesso!')),
         );
 
-        // Tentar extrair o ID do lote ou usar um valor padrão
         final idLote = responseData['idLote']?.toString() ?? '0';
 
         Navigator.pushReplacement(
@@ -320,24 +318,16 @@ class _CriarLotePageState extends State<CriarLotePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Dropdown Sala
                     _buildSalaDropdown(),
                     const SizedBox(height: 16),
-
-                    // Dropdown Cogumelo
                     _buildCogumeloDropdown(),
                     const SizedBox(height: 16),
-
-                    // Dropdown Fase
                     _buildFaseDropdown(),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
-            // Botão Criar Lote
             ElevatedButton.icon(
               onPressed: _criarLote,
               icon: const Icon(Icons.save, color: Colors.white),

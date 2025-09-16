@@ -9,12 +9,10 @@ const defaultPadding = 16.0;
 
 const defaultHeightButton = 50;
 
-// Configuração dinâmica da API
 final GetStorage _storage = GetStorage();
 
-// Função que retorna a URL base da API (com IP salvo ou valor padrão)
 String getApiBaseUrl() {
-  const defaultIp = '192.168.15.2'; // IP padrão (fallback)
+  const defaultIp = '192.168.15.2';
   final savedIp = _storage.read('server_ip') ?? defaultIp;
   return 'http://$savedIp/smartmushroom-api/';
 }

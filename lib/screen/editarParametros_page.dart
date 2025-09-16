@@ -161,7 +161,6 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Card para Sala
                     Card(
                       elevation: 4,
                       shape: RoundedRectangleBorder(
@@ -185,7 +184,6 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
                               ),
                             ),
                             const SizedBox(height: defaultPadding),
-                            // Dropdown Fase (agora dinâmico)
                             DropdownButtonFormField<String>(
                               decoration: InputDecoration(
                                 labelText: 'Fase de Cultivo',
