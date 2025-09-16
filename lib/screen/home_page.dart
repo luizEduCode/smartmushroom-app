@@ -96,7 +96,7 @@ class _HomePageState extends State<HomePage> {
         showBackButton: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.route_outlined, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,

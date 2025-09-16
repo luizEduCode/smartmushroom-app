@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
+import 'package:smartmushroom_app/models/status_atuador.dart';
 import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
@@ -16,13 +16,13 @@ import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 class SalaPage extends StatefulWidget {
   final String nomeSala;
   final String idLote;
-  final String? idSala; // idSala agora é opcional (nullable)
+  final String? idSala;
 
   const SalaPage({
     super.key,
     required this.nomeSala,
     required this.idLote,
-    this.idSala, // removido 'required'
+    this.idSala,
   });
 
   @override
@@ -35,14 +35,16 @@ class _SalaPageState extends State<SalaPage> {
   bool _isLoading = true;
   bool _hasFetchError = false;
   Map<int, bool> _atuadoresStatus = {};
+  bool _loadingAtuadores = false;
 
   @override
   void initState() {
     super.initState();
-    _carregarEstadosLocais();
+    _carregarStatusAtuadores();
     fetchSala();
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchSala();
+      _carregarStatusAtuadores(); // Atualiza status periodicamente
     });
   }
 
@@ -50,29 +52,6 @@ class _SalaPageState extends State<SalaPage> {
   void dispose() {
     _timer.cancel();
     super.dispose();
-  }
-
-  Future<void> _carregarEstadosLocais() async {
-    Map<int, bool> estados = {};
-    for (int id = 1; id <= 4; id++) {
-      final status = await carregarStatusLocal(id);
-      estados[id] = status ?? false;
-    }
-    if (mounted) {
-      setState(() {
-        _atuadoresStatus = estados;
-      });
-    }
-  }
-
-  Future<bool?> carregarStatusLocal(int idAtuador) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('atuador_$idAtuador');
-  }
-
-  Future<void> salvarStatusLocal(int idAtuador, bool status) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('atuador_$idAtuador', status);
   }
 
   Future<void> fetchSala() async {
@@ -83,15 +62,11 @@ class _SalaPageState extends State<SalaPage> {
       );
 
       debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // Usando a model para parsear os dados
         final salasComLotes = SalaLotesAtivos.fromJson(data);
 
-        // Encontrar a sala específica pelo ID do lote
         Salas? salaEncontrada;
         Lotes? loteEncontrado;
 
@@ -147,51 +122,155 @@ class _SalaPageState extends State<SalaPage> {
     }
   }
 
-  Future<void> _alterarStatusAtuador(int idAtuador) async {
-    final bool atual = _atuadoresStatus[idAtuador] ?? false;
-    final String novoStatus = !atual ? 'ativo' : 'inativo';
-
+  Future<void> _carregarStatusAtuadores() async {
     try {
-      final response = await http.post(
-        Uri.parse('${getApiBaseUrl()}controle_atuadores.php'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {'idAtuador': idAtuador.toString(), 'statusAtuador': novoStatus},
+      final response = await http.get(
+        Uri.parse("${getApiBaseUrl()}framework/controleAtuador/listarTodos"),
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['mensagem'].toString().contains('atualizado')) {
-          if (mounted) {
-            setState(() {
-              _atuadoresStatus[idAtuador] = !atual;
-            });
-          }
-          await salvarStatusLocal(idAtuador, !atual);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Atuador atualizado com sucesso')),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro ao atualizar atuador')),
-            );
-          }
+        final List<dynamic> data = jsonDecode(response.body);
+
+        if (mounted) {
+          setState(() {
+            for (var item in data) {
+              try {
+                final atuador = StatusAtuador.fromJson(item);
+                _atuadoresStatus[atuador.idAtuador] =
+                    atuador.statusAtuador?.toLowerCase() == "ativo";
+              } catch (e) {
+                debugPrint("Erro ao parsear atuador: $e");
+              }
+            }
+          });
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ${response.statusCode} ao atualizar')),
-          );
-        }
+        debugPrint("Erro ao carregar status: ${response.statusCode}");
       }
     } catch (e) {
+      debugPrint("Erro ao buscar status: $e");
+    }
+  }
+
+  // Future<void> _alterarStatusAtuador(int idAtuador) async {
+  //   if (_loadingAtuadores) return;
+
+  //   bool statusAtual = _atuadoresStatus[idAtuador] ?? false;
+  //   bool novoStatus = !statusAtual;
+
+  //   setState(() {
+  //     _loadingAtuadores = true;
+  //   });
+
+  //   try {
+  //     final response = await http.put(
+  //       Uri.parse("${getApiBaseUrl()}framework/controleAtuador/alterar"),
+  //       headers: {"Content-Type": "application/json"},
+  //       body: jsonEncode({
+  //         "idAtuador": idAtuador,
+  //         "statusAtuador": novoStatus ? "ativo" : "inativo",
+  //       }),
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       // Recarrega os status para garantir sincronização
+  //       await _carregarStatusAtuadores();
+
+  //       if (mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(content: Text('Status alterado com sucesso!')),
+  //         );
+  //       }
+  //     } else {
+  //       throw Exception("Erro ao atualizar status (${response.statusCode})");
+  //     }
+  //   } catch (e) {
+  //     debugPrint("Erro ao alterar status do atuador: $e");
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(
+  //         context,
+  //       ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
+  //       // Reverte visualmente em caso de erro
+  //       setState(() {
+  //         _atuadoresStatus[idAtuador] = statusAtual;
+  //       });
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         _loadingAtuadores = false;
+  //       });
+  //     }
+  //   }
+  // }
+
+  Future<void> _alterarStatusAtuador(int idAtuador) async {
+    if (_loadingAtuadores) return;
+
+    bool statusAtual = _atuadoresStatus[idAtuador] ?? false;
+    bool novoStatus = !statusAtual;
+
+    setState(() {
+      _loadingAtuadores = true;
+      // Atualiza visualmente para feedback imediato
+      _atuadoresStatus[idAtuador] = novoStatus;
+    });
+
+    final Map<String, dynamic> payload = {
+      "idAtuador": idAtuador,
+      "statusAtuador": novoStatus ? "ativo" : "inativo",
+    };
+
+    debugPrint('Enviando PUT para alterar atuador: ${jsonEncode(payload)}');
+
+    try {
+      final response = await http.post(
+        Uri.parse("${getApiBaseUrl()}framework/controleAtuador/alterar"),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode(payload),
+      );
+
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Resposta do servidor: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Atualiza os status novamente para garantir sincronização
+        await _carregarStatusAtuadores();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Status alterado com sucesso!')),
+          );
+        }
+      } else if (response.statusCode == 400) {
+        // 400 indica que o backend não recebeu os parâmetros corretamente
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Erro 400: Parâmetros inválidos.\nVerifique o JSON enviado.',
+              ),
+            ),
+          );
+        }
+        // Reverte visualmente
+        setState(() => _atuadoresStatus[idAtuador] = statusAtual);
+      } else {
+        throw Exception('Erro ao atualizar status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Erro ao alterar status do atuador: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
+        // Reverte visualmente
+        setState(() => _atuadoresStatus[idAtuador] = statusAtual);
       }
+    } finally {
+      if (mounted) setState(() => _loadingAtuadores = false);
     }
   }
 
@@ -392,12 +471,24 @@ class _SalaPageState extends State<SalaPage> {
                                   padding: const EdgeInsets.all(20),
                                 ),
                                 onPressed:
-                                    () => _alterarStatusAtuador(idAtuador),
-                                child: Icon(
-                                  icon,
-                                  color: Colors.white,
-                                  size: 25,
-                                ),
+                                    _loadingAtuadores
+                                        ? null
+                                        : () =>
+                                            _alterarStatusAtuador(idAtuador),
+                                child:
+                                    _loadingAtuadores &&
+                                            _atuadoresStatus[idAtuador] !=
+                                                isAtivo
+                                        ? const CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation(
+                                            Colors.white,
+                                          ),
+                                        )
+                                        : Icon(
+                                          icon,
+                                          color: Colors.white,
+                                          size: 25,
+                                        ),
                               ),
                               const SizedBox(height: 4),
                               Text(label, style: const TextStyle(fontSize: 12)),
