@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/models/status_atuador.dart';
-import 'package:smartmushroom_app/screen/chart/bar_indicator.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
@@ -151,58 +150,6 @@ class _SalaPageState extends State<SalaPage> {
       debugPrint("Erro ao buscar status: $e");
     }
   }
-
-  // Future<void> _alterarStatusAtuador(int idAtuador) async {
-  //   if (_loadingAtuadores) return;
-
-  //   bool statusAtual = _atuadoresStatus[idAtuador] ?? false;
-  //   bool novoStatus = !statusAtual;
-
-  //   setState(() {
-  //     _loadingAtuadores = true;
-  //   });
-
-  //   try {
-  //     final response = await http.put(
-  //       Uri.parse("${getApiBaseUrl()}framework/controleAtuador/alterar"),
-  //       headers: {"Content-Type": "application/json"},
-  //       body: jsonEncode({
-  //         "idAtuador": idAtuador,
-  //         "statusAtuador": novoStatus ? "ativo" : "inativo",
-  //       }),
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       // Recarrega os status para garantir sincronização
-  //       await _carregarStatusAtuadores();
-
-  //       if (mounted) {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(content: Text('Status alterado com sucesso!')),
-  //         );
-  //       }
-  //     } else {
-  //       throw Exception("Erro ao atualizar status (${response.statusCode})");
-  //     }
-  //   } catch (e) {
-  //     debugPrint("Erro ao alterar status do atuador: $e");
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(
-  //         context,
-  //       ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
-  //       // Reverte visualmente em caso de erro
-  //       setState(() {
-  //         _atuadoresStatus[idAtuador] = statusAtual;
-  //       });
-  //     }
-  //   } finally {
-  //     if (mounted) {
-  //       setState(() {
-  //         _loadingAtuadores = false;
-  //       });
-  //     }
-  //   }
-  // }
 
   Future<void> _alterarStatusAtuador(int idAtuador) async {
     if (_loadingAtuadores) return;
@@ -360,6 +307,20 @@ class _SalaPageState extends State<SalaPage> {
     }
   }
 
+  // Funções auxiliares para cores baseadas nos valores
+  Color _getHumidityColor(double humidity) {
+    if (humidity < 30) return Colors.red;
+    if (humidity < 60) return Colors.orange;
+    if (humidity < 80) return Colors.green;
+    return Colors.blue;
+  }
+
+  Color _getCO2Color(double co2) {
+    if (co2 < 400) return Colors.green;
+    if (co2 < 1000) return Colors.orange;
+    return Colors.red;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -381,6 +342,12 @@ class _SalaPageState extends State<SalaPage> {
                             child: RingChart(
                               temperatura:
                                   _dadosSala['temperatura']?.toString() ?? '--',
+                              valor:
+                                  double.tryParse(
+                                    _dadosSala['temperatura']?.toString() ??
+                                        '0',
+                                  ) ??
+                                  0,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -409,21 +376,80 @@ class _SalaPageState extends State<SalaPage> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          BarIndicator(
-                            label: 'Umidade',
-                            icon: Icons.water_drop_outlined,
-                            percentage: 50,
-                            valueLabel:
-                                _dadosSala['umidade']?.toString() ?? '--',
-                            color: Colors.blueAccent,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: 10.0,
+                              children: [
+                                const Text(
+                                  'Umidade',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                LinearProgressIndicator(
+                                  value:
+                                      (double.tryParse(
+                                            _dadosSala['umidade']?.toString() ??
+                                                '0',
+                                          ) ??
+                                          0) /
+                                      100,
+                                  backgroundColor: Colors.grey[500],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getHumidityColor(
+                                      double.tryParse(
+                                            _dadosSala['umidade']?.toString() ??
+                                                '0',
+                                          ) ??
+                                          0,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${_dadosSala['umidade']?.toString() ?? '--'}%',
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: defaultPadding),
-                          BarIndicator(
-                            label: 'Nível CO²',
-                            icon: Icons.cloud_outlined,
-                            percentage: 50,
-                            valueLabel: _dadosSala['co2']?.toString() ?? '--',
-                            color: Colors.orangeAccent,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: 10.0,
+                              children: [
+                                const Text(
+                                  'Nível CO²',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                LinearProgressIndicator(
+                                  value:
+                                      (double.tryParse(
+                                            _dadosSala['co2']?.toString() ??
+                                                '0',
+                                          ) ??
+                                          0) /
+                                      2000,
+                                  backgroundColor: Colors.grey[500],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getCO2Color(
+                                      double.tryParse(
+                                            _dadosSala['co2']?.toString() ??
+                                                '0',
+                                          ) ??
+                                          0,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${_dadosSala['co2']?.toString() ?? '--'}ppm',
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

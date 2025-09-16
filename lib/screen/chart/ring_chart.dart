@@ -4,11 +4,19 @@ import 'package:smartmushroom_app/constants.dart';
 
 class RingChart extends StatelessWidget {
   final String temperatura;
+  final double valor; // Adicione esta propriedade
 
-  const RingChart({super.key, required this.temperatura});
+  const RingChart({
+    super.key,
+    required this.temperatura,
+    required this.valor, // Adicione este parâmetro
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Calcular a porcentagem baseada em uma faixa razoável de temperatura (ex: 0-50°C)
+    double porcentagem = (valor.clamp(0, 50) / 50); // Limita entre 0% e 100%
+
     return Card(
       color: primaryColor,
       surfaceTintColor: primaryColor,
@@ -29,7 +37,8 @@ class RingChart extends StatelessWidget {
                   ),
                 ),
                 Icon(
-                  Icons.water_drop_outlined,
+                  Icons
+                      .thermostat_outlined, // Ícone mais apropriado para temperatura
                   color: Colors.white,
                   size: defaultPadding,
                 ),
@@ -51,13 +60,15 @@ class RingChart extends StatelessWidget {
                           centerSpaceRadius: 50,
                           sections: [
                             PieChartSectionData(
-                              value: 50,
-                              color: Color.fromARGB(255, 97, 247, 28),
+                              value: porcentagem * 100, // Valor preenchido
+                              color: _getTemperatureColor(
+                                valor,
+                              ), // Cor baseada na temperatura
                               showTitle: false,
                               radius: 5,
                             ),
                             PieChartSectionData(
-                              value: 25,
+                              value: (1 - porcentagem) * 100, // Valor restante
                               color: Colors.grey,
                               showTitle: false,
                               radius: 5,
@@ -65,15 +76,13 @@ class RingChart extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // Texto que ficará no centro do PieChart
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             temperatura != '--'
-                                ? '${double.parse(temperatura).toStringAsFixed(0)}°C'
+                                ? '${double.parse(temperatura).toStringAsFixed(1)}°C'
                                 : '--°C',
-                            // '${double.parse(temperatura).toStringAsFixed(0)} °C',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -99,5 +108,13 @@ class RingChart extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Função para determinar a cor baseada na temperatura
+  Color _getTemperatureColor(double temp) {
+    if (temp < 15) return Colors.blue; // Frio
+    if (temp < 25) return Colors.green; // Ideal
+    if (temp < 35) return Colors.orange; // Quente
+    return Colors.red; // Muito quente
   }
 }

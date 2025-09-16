@@ -57,7 +57,9 @@ class BarIndicator extends StatelessWidget {
                   width:
                       percentage > 100
                           ? double.infinity
-                          : percentage * 2, // ajuste proporcional
+                          : (percentage / 100) *
+                              MediaQuery.of(context).size.width *
+                              0.3, // ajuste proporcional
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(10),
