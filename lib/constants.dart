@@ -3,6 +3,7 @@ import 'package:get_storage/get_storage.dart';
 
 const primaryColor = Color.fromRGBO(26, 28, 41, 1);
 const secontaryColor = Color.fromRGBO(36, 91, 136, 1);
+const white = Color.fromRGBO(255, 255, 255, 1);
 
 const defaultPadding = 16.0;
 
