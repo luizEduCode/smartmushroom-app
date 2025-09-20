@@ -205,6 +205,7 @@ class _HomePageState extends State<HomePage> {
                                       umidade: lote.umidade?.toString() ?? '--',
                                       co2: lote.co2?.toString() ?? '--',
                                       status: lote.status ?? '',
+                                      idCogumelo: lote.idCogumelo ?? 0,
                                     ),
                                   ),
                                 ),

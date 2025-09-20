@@ -11,6 +11,7 @@ class SalahomeCard extends StatelessWidget {
   final String umidade;
   final String co2;
   final String status;
+  final int idCogumelo; // novo parâmetro
 
   const SalahomeCard({
     super.key,
@@ -22,6 +23,7 @@ class SalahomeCard extends StatelessWidget {
     required this.umidade,
     required this.co2,
     required this.status, // novo parâmetro
+    required this.idCogumelo, // novo parâmetro
   });
 
   @override
@@ -31,11 +33,7 @@ class SalahomeCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => SalaPage(
-                  nomeSala: nomeSala,
-                  idLote: idLote, // Passando o idLote para a SalaPage
-                ),
+            builder: (context) => SalaPage(nomeSala: nomeSala, idLote: idLote),
           ),
         );
       },

@@ -27,15 +27,6 @@ class SalaCard extends StatelessWidget {
     required String idSala, // novo parâmetro
   });
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   // return InkWell(
-  //   //   onTap: () {
-  //   //     Navigator.push(
-  //   //       context,
-  //   //       MaterialPageRoute(builder: (context) => SalaPage(nomeSala: nomeSala)),
-  //   //     );
-  //   //   },
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -46,7 +37,8 @@ class SalaCard extends StatelessWidget {
             builder:
                 (context) => SalaPage(
                   nomeSala: nomeSala,
-                  idLote: idLote, // Passando o idLote para a SalaPage
+                  idLote:
+                      idLote, // Passando o idLote para a SalaPage // Passando o idCogumelo para a SalaPage
                 ),
           ),
         );

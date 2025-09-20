@@ -2,13 +2,36 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartmushroom_app/models/parametrosidLote_model.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'dart:async';
 
+// Classe modelo para as fases de cultivo
+class FaseCultivo {
+  final int idFaseCultivo;
+  final String nomeFaseCultivo;
+
+  FaseCultivo({required this.idFaseCultivo, required this.nomeFaseCultivo});
+
+  factory FaseCultivo.fromJson(Map<String, dynamic> json) {
+    return FaseCultivo(
+      idFaseCultivo: int.tryParse(json['idFaseCultivo'].toString()) ?? 0,
+      nomeFaseCultivo: json['nomeFaseCultivo'] ?? '',
+    );
+  }
+}
+
 class EditarParametrosPage extends StatefulWidget {
   final String idLote;
+  final int? idCogumelo;
+  final int? idFaseCultivo; // Novo parâmetro opcional
 
-  const EditarParametrosPage({super.key, required this.idLote});
+  const EditarParametrosPage({
+    super.key,
+    required this.idLote,
+    this.idCogumelo,
+    this.idFaseCultivo,
+  });
 
   @override
   State<EditarParametrosPage> createState() => _EditarParametrosPageState();
@@ -24,45 +47,55 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
   String _errorMessage = '';
   bool _loadingPhases = false;
   String? _erroPhases;
-  List<Map<String, dynamic>> _cultivationPhases = [];
+  List<FaseCultivo> _cultivationPhases = [];
   String? _selectedPhase;
 
   @override
   void initState() {
     super.initState();
-    _carregarParametrosAtuais();
-    _carregarFasesCultivo();
+
+    debugPrint('idFaseCultivo recebido: ${widget.idFaseCultivo}');
+    debugPrint('idLote: ${widget.idLote}');
+    debugPrint('idCogumelo: ${widget.idCogumelo}');
+
+    // Primeiro carrega as fases
+    _carregarFasesCultivo().then((_) {
+      // Depois que as fases carregarem, decide como carregar os parâmetros
+      if (widget.idFaseCultivo != null) {
+        debugPrint('Fase selecionada inicialmente: ${widget.idFaseCultivo}');
+        _selectedPhase = widget.idFaseCultivo.toString();
+        _carregarParametrosPorFase(_selectedPhase!);
+      } else {
+        debugPrint('Nenhuma fase recebida - carregando parâmetros atuais');
+        _carregarParametrosAtuais();
+      }
+    });
   }
 
   Future<void> _carregarParametrosAtuais() async {
     try {
       final response = await http.get(
-        Uri.parse('${getApiBaseUrl()}configuracao.php?idLote=${widget.idLote}'),
+        Uri.parse(
+          '${getApiBaseUrl()}framework/parametros/listarIdParametro/${widget.idLote}',
+        ),
       );
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
-        if (data['configuracao'] != null) {
-          setState(() {
-            _temperaturaMin = double.parse(
-              data['configuracao']['temperaturaMin'],
-            );
-            _temperaturaMax = double.parse(
-              data['configuracao']['temperaturaMax'],
-            );
-            _umidadeMin = double.parse(data['configuracao']['umidadeMin']);
-            _umidadeMax = double.parse(data['configuracao']['umidadeMax']);
-            _co2Max = double.parse(data['configuracao']['co2Max']);
-            _loading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'Configurações padrão carregadas';
-            _loading = false;
-          });
-        }
+        final data = jsonDecode(response.body);
+
+        final parametros = ParametrosIdLote.fromJson(data);
+
+        setState(() {
+          _temperaturaMin = double.parse(parametros.temperaturaMin ?? '0');
+          _temperaturaMax = double.parse(parametros.temperaturaMax ?? '0');
+          _umidadeMin = double.parse(parametros.umidadeMin ?? '0');
+          _umidadeMax = double.parse(parametros.umidadeMax ?? '0');
+          _co2Max = double.parse(parametros.co2Max ?? '0');
+
+          _loading = false;
+        });
       } else if (response.statusCode == 404) {
+        final data = jsonDecode(response.body);
         setState(() {
           _errorMessage = data['error'] ?? 'Configuração não existe';
           _loading = false;
@@ -78,7 +111,56 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
     }
   }
 
+  Future<void> _carregarParametrosPorFase(String idFase) async {
+    setState(() => _loading = true); // 👈 Adicione isso
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          "${getApiBaseUrl()}framework/faseCultivo/listarIdFaseCultivo/$idFase",
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          _temperaturaMin =
+              double.tryParse(data['temperaturaMin'].toString()) ??
+              _temperaturaMin;
+          _temperaturaMax =
+              double.tryParse(data['temperaturaMax'].toString()) ??
+              _temperaturaMax;
+          _umidadeMin =
+              double.tryParse(data['umidadeMin'].toString()) ?? _umidadeMin;
+          _umidadeMax =
+              double.tryParse(data['umidadeMax'].toString()) ?? _umidadeMax;
+          _co2Max = double.tryParse(data['co2Max'].toString()) ?? _co2Max;
+          _loading = false; // 👈 E isso
+        });
+      } else {
+        throw Exception("Erro HTTP ${response.statusCode}");
+      }
+    } catch (e) {
+      setState(() => _loading = false); // 👈 E isso no catch
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Falha ao carregar parâmetros: $e")),
+        );
+      }
+    }
+  }
+
   Future<void> _salvarParametros() async {
+    if (_selectedPhase == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selecione uma fase de cultivo')),
+        );
+      }
+      return;
+    }
+
     try {
       final response = await http.put(
         Uri.parse('${getApiBaseUrl()}configuracao.php'),
@@ -90,7 +172,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           'umidadeMin': _umidadeMin,
           'umidadeMax': _umidadeMax,
           'co2Max': _co2Max,
-          'idFaseCultivo': _selectedPhase,
+          'idFaseCultivo': int.tryParse(_selectedPhase!) ?? 0, // 👈 garante INT
         }),
       );
 
@@ -118,25 +200,63 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
   }
 
   Future<void> _carregarFasesCultivo() async {
+    if (widget.idCogumelo == null) {
+      setState(() {
+        _erroPhases = 'ID do cogumelo não fornecido';
+        _loadingPhases = false;
+      });
+      return;
+    }
+
     setState(() {
       _loadingPhases = true;
       _erroPhases = null;
     });
 
     try {
-      final url = Uri.parse('${getApiBaseUrl()}lote.php?action=fases-cultivo');
+      final url = Uri.parse(
+        "${getApiBaseUrl()}framework/faseCultivo/listarPorCogumelo/${widget.idCogumelo}",
+      );
+
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            _cultivationPhases = List<Map<String, dynamic>>.from(data['data']);
-            _loadingPhases = false;
-          });
-        } else {
-          throw Exception(data['message'] ?? 'Erro ao carregar fases');
+        final dynamic data = jsonDecode(response.body);
+        List<FaseCultivo> fases = [];
+
+        // Processa diferentes formatos de resposta
+        if (data is List) {
+          fases =
+              data
+                  .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+                  .toList();
+        } else if (data is Map<String, dynamic>) {
+          if (data['success'] == true) {
+            if (data['data'] is List) {
+              fases =
+                  (data['data'] as List)
+                      .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+                      .toList();
+            } else if (data['data'] is Map && data['data']['fases'] is List) {
+              fases =
+                  (data['data']['fases'] as List)
+                      .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+                      .toList();
+            } else if (data['fases'] is List) {
+              fases =
+                  (data['fases'] as List)
+                      .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+                      .toList();
+            }
+          } else {
+            throw Exception(data['message'] ?? 'Erro ao carregar fases');
+          }
         }
+
+        setState(() {
+          _cultivationPhases = fases;
+          _loadingPhases = false;
+        });
       } else {
         throw Exception('Erro HTTP ${response.statusCode}');
       }
@@ -194,28 +314,25 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
                               items:
                                   _cultivationPhases.map((fase) {
                                     return DropdownMenuItem<String>(
-                                      value: fase['idFaseCultivo'].toString(),
-                                      child: Text(fase['nomeFaseCultivo']),
+                                      value: fase.idFaseCultivo.toString(),
+                                      child: Text(fase.nomeFaseCultivo),
                                     );
                                   }).toList(),
                               onChanged:
                                   _loadingPhases
                                       ? null
-                                      : (value) => setState(
-                                        () => _selectedPhase = value,
-                                      ),
+                                      : (value) {
+                                        setState(() => _selectedPhase = value);
+                                        if (value != null) {
+                                          _carregarParametrosPorFase(value);
+                                        }
+                                      },
                               hint:
                                   _loadingPhases
                                       ? const Text("Carregando fases...")
                                       : _erroPhases != null
                                       ? Text(_erroPhases!)
                                       : const Text("Selecione uma fase"),
-                              disabledHint:
-                                  _loadingPhases
-                                      ? const Text("Carregando fases...")
-                                      : _erroPhases != null
-                                      ? Text(_erroPhases!)
-                                      : const Text("Nenhuma fase disponível"),
                               icon:
                                   _loadingPhases
                                       ? const SizedBox(
@@ -266,7 +383,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
         ),
         Slider(
           value: _temperaturaMin,
-          min: 18,
+          min: 10,
           max: 28,
           divisions: 10,
           label: _temperaturaMin.toStringAsFixed(1),
@@ -331,7 +448,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
         Slider(
           value: _co2Max,
           min: 500,
-          max: 3000,
+          max: 5000,
           divisions: 25,
           label: _co2Max.toStringAsFixed(0),
           onChanged: (value) => setState(() => _co2Max = value),

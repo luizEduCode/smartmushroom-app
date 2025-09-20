@@ -35,6 +35,8 @@ class _SalaPageState extends State<SalaPage> {
   bool _hasFetchError = false;
   Map<int, bool> _atuadoresStatus = {};
   bool _loadingAtuadores = false;
+  int? _idCogumelo; // Variável para armazenar o idCogumelo
+  int? _idFaseCultivo;
 
   @override
   void initState() {
@@ -52,6 +54,75 @@ class _SalaPageState extends State<SalaPage> {
     _timer.cancel();
     super.dispose();
   }
+
+  // Future<void> fetchSala() async {
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
+  //       headers: {'Accept': 'application/json'},
+  //     );
+
+  //     debugPrint('Status Code: ${response.statusCode}');
+
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       final salasComLotes = SalaLotesAtivos.fromJson(data);
+
+  //       Salas? salaEncontrada;
+  //       Lotes? loteEncontrado;
+
+  //       for (var sala in salasComLotes.salas ?? []) {
+  //         for (var lote in sala.lotes ?? []) {
+  //           if (lote.idLote?.toString() == widget.idLote) {
+  //             salaEncontrada = sala;
+  //             loteEncontrado = lote;
+  //             break;
+  //           }
+  //         }
+  //         if (salaEncontrada != null) break;
+  //       }
+
+  //       if (mounted) {
+  //         setState(() {
+  //           if (salaEncontrada != null && loteEncontrado != null) {
+  //             _dadosSala = {
+  //               'idSala': salaEncontrada.idSala,
+  //               'nomeSala': salaEncontrada.nomeSala,
+  //               'idLote': loteEncontrado.idLote,
+  //               'dataInicio': loteEncontrado.dataInicio,
+  //               'status': loteEncontrado.status,
+  //               'nomeCogumelo': loteEncontrado.nomeCogumelo,
+  //               'nomeFaseCultivo': loteEncontrado.nomeFaseCultivo,
+  //               'temperatura': loteEncontrado.temperatura,
+  //               'umidade': loteEncontrado.umidade,
+  //               'co2': loteEncontrado.co2,
+  //             };
+  //             _idCogumelo = loteEncontrado.idCogumelo; // <-- Aqui
+  //             _isLoading = false;
+  //             _hasFetchError = false;
+  //           } else {
+  //             _hasFetchError = true;
+  //             _isLoading = false;
+  //           }
+  //         });
+  //       }
+  //     } else {
+  //       if (mounted) {
+  //         setState(() {
+  //           _hasFetchError = true;
+  //           _isLoading = false;
+  //         });
+  //       }
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       setState(() {
+  //         _hasFetchError = true;
+  //         _isLoading = false;
+  //       });
+  //     }
+  //   }
+  // }
 
   Future<void> fetchSala() async {
     try {
@@ -95,6 +166,9 @@ class _SalaPageState extends State<SalaPage> {
                 'umidade': loteEncontrado.umidade,
                 'co2': loteEncontrado.co2,
               };
+              _idCogumelo = loteEncontrado.idCogumelo;
+              _idFaseCultivo =
+                  loteEncontrado.idFaseCultivo; // 👈 Aqui você salva
               _isLoading = false;
               _hasFetchError = false;
             } else {
@@ -433,7 +507,7 @@ class _SalaPageState extends State<SalaPage> {
                                                 '0',
                                           ) ??
                                           0) /
-                                      2000,
+                                      5000,
                                   backgroundColor: Colors.grey[500],
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     _getCO2Color(
@@ -534,6 +608,10 @@ class _SalaPageState extends State<SalaPage> {
                                   builder:
                                       (context) => EditarParametrosPage(
                                         idLote: widget.idLote,
+                                        idCogumelo: _idCogumelo ?? 0,
+                                        idFaseCultivo:
+                                            _idFaseCultivo ??
+                                            0, // 👈 Use a variável aqui
                                       ),
                                 ),
                               );
