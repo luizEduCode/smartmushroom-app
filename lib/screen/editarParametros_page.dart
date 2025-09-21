@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/models/parametrosidLote_model.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
-import 'dart:async';
 
-// Classe modelo para as fases de cultivo
 class FaseCultivo {
   final int idFaseCultivo;
   final String nomeFaseCultivo;
@@ -24,7 +22,7 @@ class FaseCultivo {
 class EditarParametrosPage extends StatefulWidget {
   final String idLote;
   final int? idCogumelo;
-  final int? idFaseCultivo; // Novo parâmetro opcional
+  final int? idFaseCultivo;
 
   const EditarParametrosPage({
     super.key,
@@ -38,37 +36,42 @@ class EditarParametrosPage extends StatefulWidget {
 }
 
 class _EditarParametrosPageState extends State<EditarParametrosPage> {
+  // Valores dos parâmetros
   double _temperaturaMin = 22;
   double _temperaturaMax = 26;
   double _umidadeMin = 65;
   double _umidadeMax = 75;
   double _co2Max = 1500;
+
+  // Estados de carregamento e erro
   bool _loading = true;
-  String _errorMessage = '';
   bool _loadingPhases = false;
+  String _errorMessage = '';
   String? _erroPhases;
+
+  // Controle de fases
   List<FaseCultivo> _cultivationPhases = [];
   String? _selectedPhase;
+  static const String _semFase = 'nenhuma_fase';
+  bool _valoresModificadosManual = false;
+  int? _idFaseCultivoOriginal;
+  bool _mantemFaseOriginal = true;
 
   @override
   void initState() {
     super.initState();
+    _inicializarDados();
+  }
 
+  void _inicializarDados() {
     debugPrint('idFaseCultivo recebido: ${widget.idFaseCultivo}');
     debugPrint('idLote: ${widget.idLote}');
     debugPrint('idCogumelo: ${widget.idCogumelo}');
 
-    // Primeiro carrega as fases
-    _carregarFasesCultivo().then((_) {
-      // Depois que as fases carregarem, decide como carregar os parâmetros
-      if (widget.idFaseCultivo != null) {
-        debugPrint('Fase selecionada inicialmente: ${widget.idFaseCultivo}');
-        _selectedPhase = widget.idFaseCultivo.toString();
-        _carregarParametrosPorFase(_selectedPhase!);
-      } else {
-        debugPrint('Nenhuma fase recebida - carregando parâmetros atuais');
-        _carregarParametrosAtuais();
-      }
+    _idFaseCultivoOriginal = widget.idFaseCultivo;
+
+    _carregarParametrosAtuais().then((_) {
+      _carregarFasesCultivo();
     });
   }
 
@@ -82,17 +85,16 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         final parametros = ParametrosIdLote.fromJson(data);
 
         setState(() {
-          _temperaturaMin = double.parse(parametros.temperaturaMin ?? '0');
-          _temperaturaMax = double.parse(parametros.temperaturaMax ?? '0');
-          _umidadeMin = double.parse(parametros.umidadeMin ?? '0');
-          _umidadeMax = double.parse(parametros.umidadeMax ?? '0');
-          _co2Max = double.parse(parametros.co2Max ?? '0');
-
+          _temperaturaMin = double.parse(parametros.temperaturaMin ?? '22');
+          _temperaturaMax = double.parse(parametros.temperaturaMax ?? '26');
+          _umidadeMin = double.parse(parametros.umidadeMin ?? '65');
+          _umidadeMax = double.parse(parametros.umidadeMax ?? '75');
+          _co2Max = double.parse(parametros.co2Max ?? '1500');
           _loading = false;
+          _mantemFaseOriginal = true;
         });
       } else if (response.statusCode == 404) {
         final data = jsonDecode(response.body);
@@ -112,7 +114,12 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
   }
 
   Future<void> _carregarParametrosPorFase(String idFase) async {
-    setState(() => _loading = true); // 👈 Adicione isso
+    if (_valoresModificadosManual) {
+      setState(() => _loading = false);
+      return;
+    }
+
+    setState(() => _loading = true);
 
     try {
       final response = await http.get(
@@ -136,13 +143,13 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           _umidadeMax =
               double.tryParse(data['umidadeMax'].toString()) ?? _umidadeMax;
           _co2Max = double.tryParse(data['co2Max'].toString()) ?? _co2Max;
-          _loading = false; // 👈 E isso
+          _loading = false;
         });
       } else {
         throw Exception("Erro HTTP ${response.statusCode}");
       }
     } catch (e) {
-      setState(() => _loading = false); // 👈 E isso no catch
+      setState(() => _loading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Falha ao carregar parâmetros: $e")),
@@ -152,18 +159,12 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
   }
 
   Future<void> _salvarParametros() async {
-    if (_selectedPhase == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selecione uma fase de cultivo')),
-        );
-      }
-      return;
-    }
-
     try {
+      final int? idFaseCultivoParaEnviar = _obterIdFaseParaEnviar();
+
       final response = await http.put(
         Uri.parse('${getApiBaseUrl()}configuracao.php'),
+        // Uri.parse('${getApiBaseUrl()}framework/parametros/alterar'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'idLote': widget.idLote,
@@ -172,30 +173,44 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           'umidadeMin': _umidadeMin,
           'umidadeMax': _umidadeMax,
           'co2Max': _co2Max,
-          'idFaseCultivo': int.tryParse(_selectedPhase!) ?? 0, // 👈 garante INT
+          'idFaseCultivo': idFaseCultivoParaEnviar,
         }),
       );
 
-      if (response.statusCode == 200) {
-        if (mounted) {
-          Navigator.pop(context, true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sucesso ao salvar parâmetros!')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao salvar: ${response.body}')),
-          );
-        }
-      }
+      _processarRespostaSalvamento(response);
     } catch (e) {
+      _mostrarErro('Erro: ${e.toString()}');
+    }
+  }
+
+  int? _obterIdFaseParaEnviar() {
+    if (_selectedPhase == _semFase && _mantemFaseOriginal) {
+      return _idFaseCultivoOriginal;
+    } else if (_selectedPhase == _semFase) {
+      return null;
+    } else {
+      return int.tryParse(_selectedPhase!);
+    }
+  }
+
+  void _processarRespostaSalvamento(http.Response response) {
+    if (response.statusCode == 200) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sucesso ao salvar parâmetros!')),
+        );
       }
+    } else {
+      _mostrarErro('Erro ao salvar: ${response.body}');
+    }
+  }
+
+  void _mostrarErro(String mensagem) {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mensagem)));
     }
   }
 
@@ -221,41 +236,14 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-        List<FaseCultivo> fases = [];
+        final List<FaseCultivo> fases = _processarRespostaFases(response);
 
-        // Processa diferentes formatos de resposta
-        if (data is List) {
-          fases =
-              data
-                  .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
-                  .toList();
-        } else if (data is Map<String, dynamic>) {
-          if (data['success'] == true) {
-            if (data['data'] is List) {
-              fases =
-                  (data['data'] as List)
-                      .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
-                      .toList();
-            } else if (data['data'] is Map && data['data']['fases'] is List) {
-              fases =
-                  (data['data']['fases'] as List)
-                      .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
-                      .toList();
-            } else if (data['fases'] is List) {
-              fases =
-                  (data['fases'] as List)
-                      .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
-                      .toList();
-            }
-          } else {
-            throw Exception(data['message'] ?? 'Erro ao carregar fases');
-          }
-        }
+        _removerFaseAtualDaLista(fases);
 
         setState(() {
           _cultivationPhases = fases;
           _loadingPhases = false;
+          _selectedPhase = _semFase;
         });
       } else {
         throw Exception('Erro HTTP ${response.statusCode}');
@@ -268,108 +256,228 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
     }
   }
 
+  List<FaseCultivo> _processarRespostaFases(http.Response response) {
+    final dynamic data = jsonDecode(response.body);
+
+    if (data is List) {
+      return data
+          .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+          .toList();
+    } else if (data is Map<String, dynamic>) {
+      if (data['success'] == true) {
+        if (data['data'] is List) {
+          return (data['data'] as List)
+              .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+              .toList();
+        } else if (data['data'] is Map && data['data']['fases'] is List) {
+          return (data['data']['fases'] as List)
+              .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+              .toList();
+        } else if (data['fases'] is List) {
+          return (data['fases'] as List)
+              .map<FaseCultivo>((json) => FaseCultivo.fromJson(json))
+              .toList();
+        }
+      } else {
+        throw Exception(data['message'] ?? 'Erro ao carregar fases');
+      }
+    }
+
+    return [];
+  }
+
+  void _removerFaseAtualDaLista(List<FaseCultivo> fases) {
+    if (_idFaseCultivoOriginal != null) {
+      fases.removeWhere((fase) => fase.idFaseCultivo == _idFaseCultivoOriginal);
+    }
+  }
+
+  void _onFaseSelecionada(String? value) {
+    setState(() {
+      _selectedPhase = value;
+      _mantemFaseOriginal = false;
+    });
+
+    if (value != null) {
+      if (value == _semFase) {
+        _carregarParametrosAtuais();
+      } else {
+        _carregarParametrosPorFase(value);
+      }
+    }
+  }
+
+  void _restaurarParametros() {
+    if (_valoresModificadosManual) {
+      setState(() {
+        _valoresModificadosManual = false;
+        _mantemFaseOriginal = true;
+      });
+      _carregarParametrosAtuais();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Editar Parâmetros'),
-      body:
-          _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage.isNotEmpty
-              ? Center(child: Text(_errorMessage))
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 24,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Center(
-                              child: Text(
-                                'Dados do Lote',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: defaultPadding),
-                            DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: 'Fase de Cultivo',
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.timeline),
-                              ),
-                              value: _selectedPhase,
-                              items:
-                                  _cultivationPhases.map((fase) {
-                                    return DropdownMenuItem<String>(
-                                      value: fase.idFaseCultivo.toString(),
-                                      child: Text(fase.nomeFaseCultivo),
-                                    );
-                                  }).toList(),
-                              onChanged:
-                                  _loadingPhases
-                                      ? null
-                                      : (value) {
-                                        setState(() => _selectedPhase = value);
-                                        if (value != null) {
-                                          _carregarParametrosPorFase(value);
-                                        }
-                                      },
-                              hint:
-                                  _loadingPhases
-                                      ? const Text("Carregando fases...")
-                                      : _erroPhases != null
-                                      ? Text(_erroPhases!)
-                                      : const Text("Selecione uma fase"),
-                              icon:
-                                  _loadingPhases
-                                      ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                      : const Icon(Icons.arrow_drop_down),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: defaultPadding),
-                    _buildTemperaturaSlider(),
-                    _buildUmidadeSlider(),
-                    _buildCo2Slider(),
-                    const SizedBox(height: defaultPadding),
-                    ElevatedButton.icon(
-                      onPressed: _salvarParametros,
-                      icon: const Icon(Icons.save, color: Colors.white),
-                      label: const Text(
-                        'Salvar Parâmetros',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return Center(child: Text(_errorMessage));
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          if (_valoresModificadosManual) _buildBannerModificacao(),
+          _buildCardDadosLote(),
+          const SizedBox(height: defaultPadding),
+          _buildTemperaturaSlider(),
+          _buildUmidadeSlider(),
+          _buildCo2Slider(),
+          _buildBotoesAcao(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBannerModificacao() {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.amber[100],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info, color: Colors.amber),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Valores modificados manualmente',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardDadosLote() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Center(
+              child: Text(
+                'Dados do Lote',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
+            ),
+            const SizedBox(height: defaultPadding),
+            _buildDropdownFaseCultivo(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownFaseCultivo() {
+    return DropdownButtonFormField<String>(
+      decoration: const InputDecoration(
+        labelText: 'Fase de Cultivo',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.timeline),
+      ),
+      value: _selectedPhase,
+      items: _buildDropdownItems(),
+      onChanged: _loadingPhases ? null : _onFaseSelecionada,
+      hint: _buildHintDropdown(),
+      icon: _buildIconDropdown(),
+    );
+  }
+
+  List<DropdownMenuItem<String>> _buildDropdownItems() {
+    return [
+      const DropdownMenuItem<String>(
+        value: _semFase,
+        child: Text('Parâmetros Atuais do Lote'),
+      ),
+      ..._cultivationPhases.map((fase) {
+        return DropdownMenuItem<String>(
+          value: fase.idFaseCultivo.toString(),
+          child: Text(fase.nomeFaseCultivo),
+        );
+      }).toList(),
+    ];
+  }
+
+  Widget _buildHintDropdown() {
+    if (_loadingPhases) {
+      return const Text("Carregando fases...");
+    } else if (_erroPhases != null) {
+      return Text(_erroPhases!);
+    } else {
+      return const Text("Selecione uma fase");
+    }
+  }
+
+  Widget _buildIconDropdown() {
+    return _loadingPhases
+        ? const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+        : const Icon(Icons.arrow_drop_down);
+  }
+
+  Widget _buildBotoesAcao() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _valoresModificadosManual ? _restaurarParametros : null,
+            icon: const Icon(Icons.settings_backup_restore_rounded),
+            label: const Text('Restaurar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: defaultPadding),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _salvarParametros,
+            icon: const Icon(Icons.save, color: Colors.white),
+            label: const Text('Salvar', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -387,7 +495,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           max: 28,
           divisions: 10,
           label: _temperaturaMin.toStringAsFixed(1),
-          onChanged: (value) => setState(() => _temperaturaMin = value),
+          onChanged: _onTemperaturaMinChanged,
         ),
         const Text(
           'Temperatura Máxima (°C)',
@@ -399,10 +507,24 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           max: 30,
           divisions: 10,
           label: _temperaturaMax.toStringAsFixed(1),
-          onChanged: (value) => setState(() => _temperaturaMax = value),
+          onChanged: _onTemperaturaMaxChanged,
         ),
       ],
     );
+  }
+
+  void _onTemperaturaMinChanged(double value) {
+    setState(() {
+      _temperaturaMin = value;
+      _valoresModificadosManual = true;
+    });
+  }
+
+  void _onTemperaturaMaxChanged(double value) {
+    setState(() {
+      _temperaturaMax = value;
+      _valoresModificadosManual = true;
+    });
   }
 
   Widget _buildUmidadeSlider() {
@@ -419,7 +541,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           max: 90,
           divisions: 20,
           label: _umidadeMin.toStringAsFixed(1),
-          onChanged: (value) => setState(() => _umidadeMin = value),
+          onChanged: _onUmidadeMinChanged,
         ),
         const Text(
           'Umidade Máxima (%)',
@@ -431,10 +553,24 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           max: 100,
           divisions: 20,
           label: _umidadeMax.toStringAsFixed(1),
-          onChanged: (value) => setState(() => _umidadeMax = value),
+          onChanged: _onUmidadeMaxChanged,
         ),
       ],
     );
+  }
+
+  void _onUmidadeMinChanged(double value) {
+    setState(() {
+      _umidadeMin = value;
+      _valoresModificadosManual = true;
+    });
+  }
+
+  void _onUmidadeMaxChanged(double value) {
+    setState(() {
+      _umidadeMax = value;
+      _valoresModificadosManual = true;
+    });
   }
 
   Widget _buildCo2Slider() {
@@ -451,9 +587,16 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
           max: 5000,
           divisions: 25,
           label: _co2Max.toStringAsFixed(0),
-          onChanged: (value) => setState(() => _co2Max = value),
+          onChanged: _onCo2MaxChanged,
         ),
       ],
     );
+  }
+
+  void _onCo2MaxChanged(double value) {
+    setState(() {
+      _co2Max = value;
+      _valoresModificadosManual = true;
+    });
   }
 }
