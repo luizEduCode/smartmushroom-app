@@ -81,10 +81,10 @@ class RingChart extends StatelessWidget {
                         children: [
                           Text(
                             temperatura != '--'
-                                ? '${double.parse(temperatura).toStringAsFixed(1)}°C'
+                                ? '${double.parse(temperatura).toStringAsFixed(0)}°C'
                                 : '--°C',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -92,7 +92,7 @@ class RingChart extends StatelessWidget {
                           Text(
                             'Celcius',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
                             ),

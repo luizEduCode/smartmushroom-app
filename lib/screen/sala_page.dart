@@ -35,7 +35,7 @@ class _SalaPageState extends State<SalaPage> {
   bool _hasFetchError = false;
   Map<int, bool> _atuadoresStatus = {};
   bool _loadingAtuadores = false;
-  int? _idCogumelo; // Variável para armazenar o idCogumelo
+  int? _idCogumelo;
   int? _idFaseCultivo;
 
   @override
@@ -45,7 +45,7 @@ class _SalaPageState extends State<SalaPage> {
     fetchSala();
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchSala();
-      _carregarStatusAtuadores(); // Atualiza status periodicamente
+      _carregarStatusAtuadores();
     });
   }
 
@@ -54,75 +54,6 @@ class _SalaPageState extends State<SalaPage> {
     _timer.cancel();
     super.dispose();
   }
-
-  // Future<void> fetchSala() async {
-  //   try {
-  //     final response = await http.get(
-  //       Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
-  //       headers: {'Accept': 'application/json'},
-  //     );
-
-  //     debugPrint('Status Code: ${response.statusCode}');
-
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body);
-  //       final salasComLotes = SalaLotesAtivos.fromJson(data);
-
-  //       Salas? salaEncontrada;
-  //       Lotes? loteEncontrado;
-
-  //       for (var sala in salasComLotes.salas ?? []) {
-  //         for (var lote in sala.lotes ?? []) {
-  //           if (lote.idLote?.toString() == widget.idLote) {
-  //             salaEncontrada = sala;
-  //             loteEncontrado = lote;
-  //             break;
-  //           }
-  //         }
-  //         if (salaEncontrada != null) break;
-  //       }
-
-  //       if (mounted) {
-  //         setState(() {
-  //           if (salaEncontrada != null && loteEncontrado != null) {
-  //             _dadosSala = {
-  //               'idSala': salaEncontrada.idSala,
-  //               'nomeSala': salaEncontrada.nomeSala,
-  //               'idLote': loteEncontrado.idLote,
-  //               'dataInicio': loteEncontrado.dataInicio,
-  //               'status': loteEncontrado.status,
-  //               'nomeCogumelo': loteEncontrado.nomeCogumelo,
-  //               'nomeFaseCultivo': loteEncontrado.nomeFaseCultivo,
-  //               'temperatura': loteEncontrado.temperatura,
-  //               'umidade': loteEncontrado.umidade,
-  //               'co2': loteEncontrado.co2,
-  //             };
-  //             _idCogumelo = loteEncontrado.idCogumelo; // <-- Aqui
-  //             _isLoading = false;
-  //             _hasFetchError = false;
-  //           } else {
-  //             _hasFetchError = true;
-  //             _isLoading = false;
-  //           }
-  //         });
-  //       }
-  //     } else {
-  //       if (mounted) {
-  //         setState(() {
-  //           _hasFetchError = true;
-  //           _isLoading = false;
-  //         });
-  //       }
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       setState(() {
-  //         _hasFetchError = true;
-  //         _isLoading = false;
-  //       });
-  //     }
-  //   }
-  // }
 
   Future<void> fetchSala() async {
     try {
@@ -167,8 +98,7 @@ class _SalaPageState extends State<SalaPage> {
                 'co2': loteEncontrado.co2,
               };
               _idCogumelo = loteEncontrado.idCogumelo;
-              _idFaseCultivo =
-                  loteEncontrado.idFaseCultivo; // 👈 Aqui você salva
+              _idFaseCultivo = loteEncontrado.idFaseCultivo;
               _isLoading = false;
               _hasFetchError = false;
             } else {
@@ -233,7 +163,6 @@ class _SalaPageState extends State<SalaPage> {
 
     setState(() {
       _loadingAtuadores = true;
-      // Atualiza visualmente para feedback imediato
       _atuadoresStatus[idAtuador] = novoStatus;
     });
 
@@ -258,7 +187,6 @@ class _SalaPageState extends State<SalaPage> {
       debugPrint('Resposta do servidor: ${response.body}');
 
       if (response.statusCode == 200) {
-        // Atualiza os status novamente para garantir sincronização
         await _carregarStatusAtuadores();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -266,7 +194,6 @@ class _SalaPageState extends State<SalaPage> {
           );
         }
       } else if (response.statusCode == 400) {
-        // 400 indica que o backend não recebeu os parâmetros corretamente
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -276,7 +203,6 @@ class _SalaPageState extends State<SalaPage> {
             ),
           );
         }
-        // Reverte visualmente
         setState(() => _atuadoresStatus[idAtuador] = statusAtual);
       } else {
         throw Exception('Erro ao atualizar status: ${response.statusCode}');
@@ -287,7 +213,6 @@ class _SalaPageState extends State<SalaPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
-        // Reverte visualmente
         setState(() => _atuadoresStatus[idAtuador] = statusAtual);
       }
     } finally {
@@ -381,7 +306,6 @@ class _SalaPageState extends State<SalaPage> {
     }
   }
 
-  // Funções auxiliares para cores baseadas nos valores
   Color _getHumidityColor(double humidity) {
     if (humidity < 30) return Colors.red;
     if (humidity < 60) return Colors.orange;
@@ -410,6 +334,7 @@ class _SalaPageState extends State<SalaPage> {
                   padding: const EdgeInsets.all(defaultPadding),
                   child: Column(
                     children: [
+                      // Seção superior - RingChart e informações
                       Row(
                         children: [
                           Expanded(
@@ -424,7 +349,7 @@ class _SalaPageState extends State<SalaPage> {
                                   0,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 20), // Aumentado o espaçamento
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,35 +358,45 @@ class _SalaPageState extends State<SalaPage> {
                                   'Cogumelo',
                                   _dadosSala['nomeCogumelo'],
                                 ),
+                                const SizedBox(
+                                  height: defaultPadding / 2,
+                                ), // Aumentado
                                 _buildInfoItem(
-                                  'Fase',
+                                  'Fase Cultivo',
                                   _dadosSala['nomeFaseCultivo'],
                                 ),
+                                const SizedBox(
+                                  height: defaultPadding / 2,
+                                ), // Aumentado
                                 _buildInfoItem(
                                   'Data Início',
                                   _dadosSala['dataInicio'],
                                 ),
+                                const SizedBox(
+                                  height: defaultPadding / 2,
+                                ), // Aumentado
                                 _buildInfoItem('Lote', _dadosSala['idLote']),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20), // Aumentado
+                      // Seção de umidade e CO2
                       Row(
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              spacing: 10.0,
                               children: [
                                 const Text(
                                   'Umidade',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 16, // Aumentado
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                                const SizedBox(height: 8), // Adicionado
                                 LinearProgressIndicator(
                                   value:
                                       (double.tryParse(
@@ -481,25 +416,29 @@ class _SalaPageState extends State<SalaPage> {
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 6), // Adicionado
                                 Text(
                                   '${_dadosSala['umidade']?.toString() ?? '--'}%',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                  ), // Aumentado
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: defaultPadding),
+                          const SizedBox(width: 20), // Aumentado
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              spacing: 10.0,
                               children: [
                                 const Text(
                                   'Nível CO²',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 16, // Aumentado
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                                const SizedBox(height: 8), // Adicionado
                                 LinearProgressIndicator(
                                   value:
                                       (double.tryParse(
@@ -519,15 +458,20 @@ class _SalaPageState extends State<SalaPage> {
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 6), // Adicionado
                                 Text(
                                   '${_dadosSala['co2']?.toString() ?? '--'}ppm',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                  ), // Aumentado
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: defaultPadding),
+                      const SizedBox(height: 24), // Aumentado
+                      // Seção dos atuadores
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: List.generate(4, (index) {
@@ -587,16 +531,22 @@ class _SalaPageState extends State<SalaPage> {
                                         : Icon(
                                           icon,
                                           color: Colors.white,
-                                          size: 25,
+                                          size: 25, // Aumentado
                                         ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(label, style: const TextStyle(fontSize: 12)),
+                              const SizedBox(height: 8), // Aumentado
+                              Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                ), // Aumentado
+                              ),
                             ],
                           );
                         }),
                       ),
-                      const SizedBox(height: defaultPadding),
+                      const SizedBox(height: 24), // Aumentado
+                      // Seção dos botões de ação
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -609,16 +559,14 @@ class _SalaPageState extends State<SalaPage> {
                                       (context) => EditarParametrosPage(
                                         idLote: widget.idLote,
                                         idCogumelo: _idCogumelo ?? 0,
-                                        idFaseCultivo:
-                                            _idFaseCultivo ??
-                                            0, // 👈 Use a variável aqui
+                                        idFaseCultivo: _idFaseCultivo ?? 0,
                                       ),
                                 ),
                               );
                             },
                             child: Container(
-                              height: 50,
-                              width: MediaQuery.of(context).size.width * 0.38,
+                              height: 45, // Aumentado
+                              width: MediaQuery.of(context).size.width * 0.35,
                               decoration: BoxDecoration(
                                 color: secontaryColor,
                                 borderRadius: BorderRadius.circular(15),
@@ -627,7 +575,7 @@ class _SalaPageState extends State<SalaPage> {
                                 child: Text(
                                   "Editar Sala",
                                   style: TextStyle(
-                                    fontSize: 20,
+                                    fontSize: 18, // Ajustado
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -638,17 +586,17 @@ class _SalaPageState extends State<SalaPage> {
                           InkWell(
                             onTap: modalFinalizaLote,
                             child: Container(
-                              height: 50,
-                              width: MediaQuery.of(context).size.width * 0.38,
+                              height: 45, // Aumentado
+                              width: MediaQuery.of(context).size.width * 0.35,
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: const Center(
                                 child: Text(
-                                  "Finalizar Lote",
+                                  "Finalizar",
                                   style: TextStyle(
-                                    fontSize: 20,
+                                    fontSize: 18, // Ajustado
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -659,28 +607,38 @@ class _SalaPageState extends State<SalaPage> {
                           InkWell(
                             onTap: modalExcluirLote,
                             child: Container(
-                              height: 50,
-                              width: MediaQuery.of(context).size.width * 0.14,
+                              height: 45, // Aumentado
+                              width:
+                                  MediaQuery.of(context).size.width *
+                                  0.15, // Ajustado
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: const Center(
-                                child: Icon(Icons.delete, color: Colors.white),
+                                child: Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                  size: 28,
+                                ), // Aumentado
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: defaultPadding),
+                      const SizedBox(height: 24), // Aumentado
+                      // Seção dos gráficos
                       _buildChartSection(
                         'Temperatura',
                         const TemperatureLinechart(),
                       ),
-                      const SizedBox(height: defaultPadding),
+                      const SizedBox(height: 20), // Aumentado
                       _buildChartSection('Umidade', const HumidityLinechart()),
-                      const SizedBox(height: defaultPadding),
+                      const SizedBox(height: 20), // Aumentado
                       _buildChartSection('Co²', const Co2Linechart()),
+                      const SizedBox(
+                        height: 16,
+                      ), // Adicionado espaçamento final
                     ],
                   ),
                 ),
@@ -689,21 +647,25 @@ class _SalaPageState extends State<SalaPage> {
   }
 
   Widget _buildInfoItem(String label, dynamic value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            value?.toString() ?? '--',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ), // Ajustado
+        ),
+        const SizedBox(height: 1), // Adicionado
+        Text(
+          value?.toString() ?? '--',
+          style: const TextStyle(
+            fontSize: 17,
+            // fontWeight: FontWeight.bold,
+          ), // Ajustado
+        ),
+      ],
     );
   }
 
@@ -715,7 +677,7 @@ class _SalaPageState extends State<SalaPage> {
           title,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12), // Aumentado
         chart,
       ],
     );
