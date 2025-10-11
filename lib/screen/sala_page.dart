@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
-import 'package:smartmushroom_app/models/status_atuador.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
 import 'package:smartmushroom_app/screen/editarParametros_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+
+import 'package:smartmushroom_app/models/Controle_Atuador_Model.dart';
+import 'package:smartmushroom_app/models/Lote_Model.dart';
+import 'package:smartmushroom_app/models/Leitura_Model.dart';
 
 class SalaPage extends StatefulWidget {
   final String nomeSala;
@@ -30,22 +33,26 @@ class SalaPage extends StatefulWidget {
 
 class _SalaPageState extends State<SalaPage> {
   late Timer _timer;
-  Map<String, dynamic> _dadosSala = {};
+
   bool _isLoading = true;
   bool _hasFetchError = false;
-  Map<int, bool> _atuadoresStatus = {};
   bool _loadingAtuadores = false;
+
+  LoteModel? _lote; // dados fixos do lote
+  LeituraModel? _leitura; // última leitura (tempo real)
+  final Map<int, bool> _atuadoresStatus = {}; // 1..4
+
   int? _idCogumelo;
-  int? _idFaseCultivo;
+  int?
+  _idFaseCultivo; // manter para compat com EditarParametrosPage (0 se null)
 
   @override
   void initState() {
     super.initState();
-    _carregarStatusAtuadores();
-    fetchSala();
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      fetchSala();
-      _carregarStatusAtuadores();
+    _carregarTudo(); // primeira carga
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _buscarUltimaLeitura(); // somente o que muda
+      _carregarStatusAtuadores(); // status dos botões
     });
   }
 
@@ -55,171 +62,182 @@ class _SalaPageState extends State<SalaPage> {
     super.dispose();
   }
 
-  Future<void> fetchSala() async {
+  // ---------- Orquestração ----------
+  Future<void> _carregarTudo() async {
+    setState(() {
+      _isLoading = true;
+      _hasFetchError = false;
+    });
     try {
-      final response = await http.get(
-        Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
-        headers: {'Accept': 'application/json'},
-      );
-
-      debugPrint('Status Code: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final salasComLotes = SalaLotesAtivos.fromJson(data);
-
-        Salas? salaEncontrada;
-        Lotes? loteEncontrado;
-
-        for (var sala in salasComLotes.salas ?? []) {
-          for (var lote in sala.lotes ?? []) {
-            if (lote.idLote?.toString() == widget.idLote) {
-              salaEncontrada = sala;
-              loteEncontrado = lote;
-              break;
-            }
-          }
-          if (salaEncontrada != null) break;
-        }
-
-        if (mounted) {
-          setState(() {
-            if (salaEncontrada != null && loteEncontrado != null) {
-              _dadosSala = {
-                'idSala': salaEncontrada.idSala,
-                'nomeSala': salaEncontrada.nomeSala,
-                'idLote': loteEncontrado.idLote,
-                'dataInicio': loteEncontrado.dataInicio,
-                'status': loteEncontrado.status,
-                'nomeCogumelo': loteEncontrado.nomeCogumelo,
-                'nomeFaseCultivo': loteEncontrado.nomeFaseCultivo,
-                'temperatura': loteEncontrado.temperatura,
-                'umidade': loteEncontrado.umidade,
-                'co2': loteEncontrado.co2,
-              };
-              _idCogumelo = loteEncontrado.idCogumelo;
-              _idFaseCultivo = loteEncontrado.idFaseCultivo;
-              _isLoading = false;
-              _hasFetchError = false;
-            } else {
-              _hasFetchError = true;
-              _isLoading = false;
-            }
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _hasFetchError = true;
-            _isLoading = false;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+      await _buscarDadosLote(); // fixa cabeçalho
+      await _buscarUltimaLeitura(); // dinâmica
+      await _carregarStatusAtuadores(); // botões
+      if (mounted) setState(() => _isLoading = false);
+    } catch (_) {
+      if (mounted)
         setState(() {
           _hasFetchError = true;
           _isLoading = false;
         });
-      }
     }
+  }
+
+  // ---------- Lote ----------
+  Future<void> _buscarDadosLote() async {
+    final url = Uri.parse(
+      '${getApiBaseUrl()}framework/lote/listarIdLote/${widget.idLote}',
+    );
+    final resp = await http.get(url, headers: {'Accept': 'application/json'});
+    if (resp.statusCode != 200)
+      throw Exception('Falha lote: ${resp.statusCode}');
+    final map = jsonDecode(resp.body) as Map<String, dynamic>;
+
+    final lote = LoteModel.fromJson(map);
+    setState(() {
+      _lote = lote;
+      _idCogumelo = lote.idCogumelo;
+      // _idFaseCultivo permanece null (0 na navegação) até existir na API
+    });
+  }
+
+  // ---------- Leitura (tempo real) ----------
+  Future<void> _buscarUltimaLeitura() async {
+    final url = Uri.parse(
+      '${getApiBaseUrl()}framework/leitura/listarUltimaLeitura/${widget.idLote}',
+    );
+    final resp = await http.get(url, headers: {'Accept': 'application/json'});
+    if (resp.statusCode != 200)
+      throw Exception('Falha leitura: ${resp.statusCode}');
+
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    if (list.isEmpty) return;
+
+    final leitura = LeituraModel.fromJson(list.first as Map<String, dynamic>);
+    setState(() {
+      _leitura = leitura;
+    });
   }
 
   Future<void> _carregarStatusAtuadores() async {
     try {
-      final response = await http.get(
-        Uri.parse("${getApiBaseUrl()}framework/controleAtuador/listarTodos"),
+      final url = Uri.parse(
+        '${getApiBaseUrl()}framework/controleAtuador/listarIdLote/${widget.idLote}',
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+      final resp = await http.get(url, headers: {'Accept': 'application/json'});
+      if (resp.statusCode != 200) {
+        throw Exception('Falha status atuadores: ${resp.statusCode}');
+      }
 
-        if (mounted) {
-          setState(() {
-            for (var item in data) {
-              try {
-                final atuador = StatusAtuador.fromJson(item);
-                _atuadoresStatus[atuador.idAtuador] =
-                    atuador.statusAtuador?.toLowerCase() == "ativo";
-              } catch (e) {
-                debugPrint("Erro ao parsear atuador: $e");
-              }
-            }
-          });
+      final raw = jsonDecode(resp.body);
+      if (raw is! List) return;
+
+      // Mantém o registro MAIS RECENTE por idAtuador
+      final Map<int, ControleAtuadorModel> maisRecentePorAtuador = {};
+
+      for (final item in raw) {
+        if (item is! Map<String, dynamic>) continue;
+        final m = ControleAtuadorModel.fromJson(item);
+
+        final id = m.idAtuador;
+        if (id == null) continue;
+
+        final atual = maisRecentePorAtuador[id];
+        if (atual == null) {
+          maisRecentePorAtuador[id] = m;
+        } else {
+          final dtNovo = _parseDateTime(m.dataCriacao);
+          final dtAtual = _parseDateTime(atual.dataCriacao);
+          if (dtNovo.isAfter(dtAtual)) {
+            maisRecentePorAtuador[id] = m;
+          }
         }
-      } else {
-        debugPrint("Erro ao carregar status: ${response.statusCode}");
+      }
+
+      // Converte para mapa simples idAtuador -> bool (ativo/inativo)
+      final Map<int, bool> novosStatus = {};
+      maisRecentePorAtuador.forEach((id, m) {
+        final ativo = (m.statusAtuador ?? '').toLowerCase() == 'ativo';
+        novosStatus[id] = ativo;
+      });
+
+      if (mounted) {
+        setState(() {
+          _atuadoresStatus
+            ..clear()
+            ..addAll(novosStatus);
+        });
       }
     } catch (e) {
-      debugPrint("Erro ao buscar status: $e");
+      debugPrint('Erro _carregarStatusAtuadores: $e');
     }
   }
 
+  DateTime _parseDateTime(String? s) {
+    // Esperado: "YYYY-MM-DD HH:MM:SS"
+    if (s == null || s.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+    try {
+      return DateTime.parse(s.replaceFirst(' ', 'T')); // torna ISO-like
+    } catch (_) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+  }
+
+  // ---------- Alterar status atuador ----------
   Future<void> _alterarStatusAtuador(int idAtuador) async {
     if (_loadingAtuadores) return;
-
-    bool statusAtual = _atuadoresStatus[idAtuador] ?? false;
-    bool novoStatus = !statusAtual;
+    final atual = _atuadoresStatus[idAtuador] ?? false;
+    final novo = !atual;
 
     setState(() {
       _loadingAtuadores = true;
-      _atuadoresStatus[idAtuador] = novoStatus;
+      _atuadoresStatus[idAtuador] = novo; // otimista
     });
 
-    final Map<String, dynamic> payload = {
-      "idAtuador": idAtuador,
-      "statusAtuador": novoStatus ? "ativo" : "inativo",
-    };
-
-    debugPrint('Enviando PUT para alterar atuador: ${jsonEncode(payload)}');
-
     try {
-      final response = await http.post(
-        Uri.parse("${getApiBaseUrl()}framework/controleAtuador/alterar"),
+      final url = Uri.parse(
+        '${getApiBaseUrl()}framework/controleAtuador/adicionar',
+      );
+      final body = {
+        'idAtuador': idAtuador.toString(),
+        'idLote': widget.idLote,
+        'statusAtuador': novo ? 'ativo' : 'inativo',
+      };
+
+      final resp = await http.post(
+        url,
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
-        body: jsonEncode(payload),
+        body: body,
+        encoding: Encoding.getByName('utf-8'),
       );
 
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Resposta do servidor: ${response.body}');
-
-      if (response.statusCode == 200) {
-        await _carregarStatusAtuadores();
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        await _carregarStatusAtuadores(); // confirma com backend
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Status alterado com sucesso!')),
           );
         }
-      } else if (response.statusCode == 400) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Erro 400: Parâmetros inválidos.\nVerifique o JSON enviado.',
-              ),
-            ),
-          );
-        }
-        setState(() => _atuadoresStatus[idAtuador] = statusAtual);
       } else {
-        throw Exception('Erro ao atualizar status: ${response.statusCode}');
+        setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
+        throw Exception('Falha alterar status (${resp.statusCode})');
       }
     } catch (e) {
-      debugPrint('Erro ao alterar status do atuador: $e');
+      setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao alterar status: $e')));
-        setState(() => _atuadoresStatus[idAtuador] = statusAtual);
+        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     } finally {
       if (mounted) setState(() => _loadingAtuadores = false);
     }
   }
 
+  // ---------- Finalizar / Excluir ----------
   Future<void> _finalizarLote() async {
     try {
       final response = await http.delete(
@@ -306,6 +324,7 @@ class _SalaPageState extends State<SalaPage> {
     }
   }
 
+  // ---------- Helpers de cor ----------
   Color _getHumidityColor(double humidity) {
     if (humidity < 30) return Colors.red;
     if (humidity < 60) return Colors.orange;
@@ -319,11 +338,12 @@ class _SalaPageState extends State<SalaPage> {
     return Colors.red;
   }
 
+  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromRGBO(234, 234, 234, 1),
-      appBar: CustomAppBar(title: widget.nomeSala),
+      appBar: CustomAppBar(title: _lote?.nomeSala ?? widget.nomeSala),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -334,55 +354,41 @@ class _SalaPageState extends State<SalaPage> {
                   padding: const EdgeInsets.all(defaultPadding),
                   child: Column(
                     children: [
-                      // Seção superior - RingChart e informações
+                      // Topo — RingChart + infos
                       Row(
                         children: [
                           Expanded(
                             child: RingChart(
-                              temperatura:
-                                  _dadosSala['temperatura']?.toString() ?? '--',
-                              valor:
-                                  double.tryParse(
-                                    _dadosSala['temperatura']?.toString() ??
-                                        '0',
-                                  ) ??
-                                  0,
+                              temperatura: _leitura?.temperatura ?? '--',
+                              valor: _leitura?.temperaturaNum ?? 0.0,
                             ),
                           ),
-                          const SizedBox(width: 20), // Aumentado o espaçamento
+                          const SizedBox(width: 20),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildInfoItem(
-                                  'Cogumelo',
-                                  _dadosSala['nomeCogumelo'],
-                                ),
-                                const SizedBox(
-                                  height: defaultPadding / 2,
-                                ), // Aumentado
-                                _buildInfoItem(
-                                  'Fase Cultivo',
-                                  _dadosSala['nomeFaseCultivo'],
-                                ),
-                                const SizedBox(
-                                  height: defaultPadding / 2,
-                                ), // Aumentado
+                                _buildInfoItem('Cogumelo', _lote?.nomeCogumelo),
+                                const SizedBox(height: defaultPadding / 2),
                                 _buildInfoItem(
                                   'Data Início',
-                                  _dadosSala['dataInicio'],
+                                  _lote?.dataInicio,
                                 ),
-                                const SizedBox(
-                                  height: defaultPadding / 2,
-                                ), // Aumentado
-                                _buildInfoItem('Lote', _dadosSala['idLote']),
+                                const SizedBox(height: defaultPadding / 2),
+                                _buildInfoItem('Lote', _lote?.idLote),
+                                const SizedBox(height: defaultPadding / 2),
+                                _buildInfoItem(
+                                  'Sala',
+                                  _lote?.nomeSala ?? widget.nomeSala,
+                                ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20), // Aumentado
-                      // Seção de umidade e CO2
+                      const SizedBox(height: 20),
+
+                      // Indicadores — Umidade e CO2
                       Row(
                         children: [
                           Expanded(
@@ -392,41 +398,27 @@ class _SalaPageState extends State<SalaPage> {
                                 const Text(
                                   'Umidade',
                                   style: TextStyle(
-                                    fontSize: 16, // Aumentado
+                                    fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 8), // Adicionado
+                                const SizedBox(height: 8),
                                 LinearProgressIndicator(
-                                  value:
-                                      (double.tryParse(
-                                            _dadosSala['umidade']?.toString() ??
-                                                '0',
-                                          ) ??
-                                          0) /
-                                      100,
+                                  value: ((_leitura?.umidadeNum ?? 0.0) / 100)
+                                      .clamp(0, 1),
                                   backgroundColor: Colors.grey[500],
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     _getHumidityColor(
-                                      double.tryParse(
-                                            _dadosSala['umidade']?.toString() ??
-                                                '0',
-                                          ) ??
-                                          0,
+                                      _leitura?.umidadeNum ?? 0.0,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 6), // Adicionado
-                                Text(
-                                  '${_dadosSala['umidade']?.toString() ?? '--'}%',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                  ), // Aumentado
-                                ),
+                                const SizedBox(height: 6),
+                                Text('${_leitura?.umidade ?? '--'}%'),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 20), // Aumentado
+                          const SizedBox(width: 20),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,50 +426,36 @@ class _SalaPageState extends State<SalaPage> {
                                 const Text(
                                   'Nível CO²',
                                   style: TextStyle(
-                                    fontSize: 16, // Aumentado
+                                    fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 8), // Adicionado
+                                const SizedBox(height: 8),
                                 LinearProgressIndicator(
-                                  value:
-                                      (double.tryParse(
-                                            _dadosSala['co2']?.toString() ??
-                                                '0',
-                                          ) ??
-                                          0) /
-                                      5000,
+                                  value: ((_leitura?.co2Num ?? 0.0) / 5000)
+                                      .clamp(0, 1),
                                   backgroundColor: Colors.grey[500],
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getCO2Color(
-                                      double.tryParse(
-                                            _dadosSala['co2']?.toString() ??
-                                                '0',
-                                          ) ??
-                                          0,
-                                    ),
+                                    _getCO2Color(_leitura?.co2Num ?? 0.0),
                                   ),
                                 ),
-                                const SizedBox(height: 6), // Adicionado
-                                Text(
-                                  '${_dadosSala['co2']?.toString() ?? '--'}ppm',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                  ), // Aumentado
-                                ),
+                                const SizedBox(height: 6),
+                                Text('${_leitura?.co2 ?? '--'}ppm'),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24), // Aumentado
-                      // Seção dos atuadores
+
+                      const SizedBox(height: 24),
+
+                      // Botões de atuadores
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: List.generate(4, (index) {
-                          int idAtuador = index + 1;
-                          bool isAtivo = _atuadoresStatus[idAtuador] ?? false;
-                          Color buttonColor =
+                          final idAtuador = index + 1;
+                          final isAtivo = _atuadoresStatus[idAtuador] ?? false;
+                          final buttonColor =
                               isAtivo
                                   ? const Color.fromARGB(255, 97, 247, 28)
                                   : secontaryColor;
@@ -485,24 +463,25 @@ class _SalaPageState extends State<SalaPage> {
                           IconData icon;
                           String label;
                           switch (idAtuador) {
-                            case 1:
-                              icon = Icons.water;
+                            case 1: // umidificador (umidade)
+                              icon = Icons.water_drop;
                               label = 'Umidade';
                               break;
-                            case 2:
+                            case 2: // aquecedor (temperatura)
+                              icon =
+                                  Icons.ac_unit; // ou Icons.thermostat_outlined
+                              label = 'Temperatura';
+                              break;
+                            case 3: // exaustor (CO2)
                               icon = Icons.air;
                               label = 'Ventilação';
                               break;
-                            case 3:
+                            case 4: // luz
                               icon = Icons.light_mode;
                               label = 'Iluminação';
                               break;
-                            case 4:
-                              icon = Icons.ac_unit;
-                              label = 'Temperatura';
-                              break;
                             default:
-                              icon = Icons.lightbulb;
+                              icon = Icons.device_hub;
                               label = 'Atuador';
                           }
 
@@ -520,33 +499,33 @@ class _SalaPageState extends State<SalaPage> {
                                         : () =>
                                             _alterarStatusAtuador(idAtuador),
                                 child:
-                                    _loadingAtuadores &&
-                                            _atuadoresStatus[idAtuador] !=
-                                                isAtivo
-                                        ? const CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation(
-                                            Colors.white,
+                                    _loadingAtuadores
+                                        ? const SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 3,
+                                            valueColor: AlwaysStoppedAnimation(
+                                              Colors.white,
+                                            ),
                                           ),
                                         )
                                         : Icon(
                                           icon,
                                           color: Colors.white,
-                                          size: 25, // Aumentado
+                                          size: 25,
                                         ),
                               ),
-                              const SizedBox(height: 8), // Aumentado
-                              Text(
-                                label,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                ), // Aumentado
-                              ),
+                              const SizedBox(height: 8),
+                              Text(label, style: const TextStyle(fontSize: 11)),
                             ],
                           );
                         }),
                       ),
-                      const SizedBox(height: 24), // Aumentado
-                      // Seção dos botões de ação
+
+                      const SizedBox(height: 24),
+
+                      // Ações
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -565,7 +544,7 @@ class _SalaPageState extends State<SalaPage> {
                               );
                             },
                             child: Container(
-                              height: 45, // Aumentado
+                              height: 45,
                               width: MediaQuery.of(context).size.width * 0.35,
                               decoration: BoxDecoration(
                                 color: secontaryColor,
@@ -575,7 +554,7 @@ class _SalaPageState extends State<SalaPage> {
                                 child: Text(
                                   "Editar Sala",
                                   style: TextStyle(
-                                    fontSize: 18, // Ajustado
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -586,7 +565,7 @@ class _SalaPageState extends State<SalaPage> {
                           InkWell(
                             onTap: modalFinalizaLote,
                             child: Container(
-                              height: 45, // Aumentado
+                              height: 45,
                               width: MediaQuery.of(context).size.width * 0.35,
                               decoration: BoxDecoration(
                                 color: Colors.red,
@@ -596,7 +575,7 @@ class _SalaPageState extends State<SalaPage> {
                                 child: Text(
                                   "Finalizar",
                                   style: TextStyle(
-                                    fontSize: 18, // Ajustado
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -607,10 +586,8 @@ class _SalaPageState extends State<SalaPage> {
                           InkWell(
                             onTap: modalExcluirLote,
                             child: Container(
-                              height: 45, // Aumentado
-                              width:
-                                  MediaQuery.of(context).size.width *
-                                  0.15, // Ajustado
+                              height: 45,
+                              width: MediaQuery.of(context).size.width * 0.15,
                               decoration: BoxDecoration(
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(15),
@@ -620,25 +597,25 @@ class _SalaPageState extends State<SalaPage> {
                                   Icons.delete,
                                   color: Colors.white,
                                   size: 28,
-                                ), // Aumentado
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24), // Aumentado
-                      // Seção dos gráficos
+
+                      const SizedBox(height: 24),
+
+                      // Gráficos (fl_chart)
                       _buildChartSection(
                         'Temperatura',
                         const TemperatureLinechart(),
                       ),
-                      const SizedBox(height: 20), // Aumentado
+                      const SizedBox(height: 20),
                       _buildChartSection('Umidade', const HumidityLinechart()),
-                      const SizedBox(height: 20), // Aumentado
+                      const SizedBox(height: 20),
                       _buildChartSection('Co²', const Co2Linechart()),
-                      const SizedBox(
-                        height: 16,
-                      ), // Adicionado espaçamento final
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -652,19 +629,10 @@ class _SalaPageState extends State<SalaPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ), // Ajustado
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 1), // Adicionado
-        Text(
-          value?.toString() ?? '--',
-          style: const TextStyle(
-            fontSize: 17,
-            // fontWeight: FontWeight.bold,
-          ), // Ajustado
-        ),
+        const SizedBox(height: 1),
+        Text(value?.toString() ?? '--', style: const TextStyle(fontSize: 17)),
       ],
     );
   }
@@ -677,7 +645,7 @@ class _SalaPageState extends State<SalaPage> {
           title,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12), // Aumentado
+        const SizedBox(height: 12),
         chart,
       ],
     );
@@ -711,9 +679,7 @@ class _SalaPageState extends State<SalaPage> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _finalizarLote();
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
+                if (mounted) Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
@@ -755,9 +721,7 @@ class _SalaPageState extends State<SalaPage> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _excluirLote();
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
+                if (mounted) Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
