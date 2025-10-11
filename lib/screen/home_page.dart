@@ -432,235 +432,240 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(defaultPadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: fetchSalas,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(defaultPadding),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(width: defaultPadding),
-                      Text(
-                        'Olá Colaborador!',
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: defaultPadding / 2,
-                  ), // Espaçamento reduzido
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const SizedBox(width: defaultPadding),
-                      StreamBuilder<String>(
-                        stream: getCurrentDateTimeStream(),
-                        builder: (context, snapshot) {
-                          return Text(
-                            snapshot.data ?? '',
-                            style: const TextStyle(
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          SizedBox(width: defaultPadding),
+                          Text(
+                            'Olá Colaborador!',
+                            style: TextStyle(
                               color: primaryColor,
-                              fontSize: 18,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
-                          );
-                        },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: defaultPadding / 2),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(width: defaultPadding),
+                          StreamBuilder<String>(
+                            stream: getCurrentDateTimeStream(),
+                            builder: (context, snapshot) {
+                              return Text(
+                                snapshot.data ?? '',
+                                style: const TextStyle(
+                                  color: primaryColor,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                  const SizedBox(height: defaultPadding * 1.5),
+                ]),
               ),
-              const SizedBox(
-                height: defaultPadding * 1.5,
-              ), // Aumentado o espaçamento
-              RefreshIndicator(
-                onRefresh: fetchSalas,
-                child:
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _hasError
-                        ? const Center(child: Text('Erro ao carregar dados'))
-                        : GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 200,
-                                crossAxisSpacing: defaultPadding, // Aumentado
-                                mainAxisSpacing:
-                                    defaultPadding /
-                                    2, // Adicionado espaçamento vertical
-                                childAspectRatio: 1.07,
-                              ),
-                          itemCount: _salas.length,
-                          itemBuilder: (context, index) {
-                            final sala = _salas[index] as Salas;
-                            // Exibe um card para cada lote ativo na sala
-                            return Column(
-                              children: [
-                                ...?sala.lotes?.map(
-                                  (lote) => GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => SalaPage(
-                                                idSala:
-                                                    sala.idSala?.toString() ??
-                                                    '0',
-                                                idLote:
-                                                    lote.idLote?.toString() ??
-                                                    '0',
-                                                nomeSala:
-                                                    sala.nomeSala ?? 'Sem nome',
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: SalahomeCard(
-                                      idLote: lote.idLote?.toString() ?? '0',
-                                      nomeSala: sala.nomeSala ?? 'Sem nome',
-                                      nomeCogumelo: lote.nomeCogumelo ?? '',
-                                      faseCultivo:
-                                          lote.nomeFaseCultivo?.toString() ??
-                                          '',
-                                      temperatura:
-                                          lote.temperatura?.toString() ?? '--',
-                                      umidade: lote.umidade?.toString() ?? '--',
-                                      co2: lote.co2?.toString() ?? '--',
-                                      status: lote.status ?? '',
-                                      idCogumelo: lote.idCogumelo ?? 0,
-                                    ),
-                                  ),
+            ),
+            if (_isLoading || _hasError)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+                sliver: SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.3,
+                    child: Center(
+                      child:
+                          _isLoading
+                              ? const CircularProgressIndicator()
+                              : const Text('Erro ao carregar dados'),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 200,
+                    crossAxisSpacing: defaultPadding,
+                    mainAxisSpacing: defaultPadding / 2,
+                    childAspectRatio: 1.07,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final sala = _salas[index] as Salas;
+                    return Column(
+                      children: [
+                        ...?sala.lotes?.map(
+                          (lote) => GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => SalaPage(
+                                        idSala: sala.idSala?.toString() ?? '0',
+                                        idLote: lote.idLote?.toString() ?? '0',
+                                        nomeSala: sala.nomeSala ?? 'Sem nome',
+                                      ),
                                 ),
-                              ],
+                              );
+                            },
+                            child: SalahomeCard(
+                              idLote: lote.idLote?.toString() ?? '0',
+                              nomeSala: sala.nomeSala ?? 'Sem nome',
+                              nomeCogumelo: lote.nomeCogumelo ?? '',
+                              faseCultivo:
+                                  lote.nomeFaseCultivo?.toString() ?? '',
+                              temperatura: lote.temperatura?.toString() ?? '--',
+                              umidade: lote.umidade?.toString() ?? '--',
+                              co2: lote.co2?.toString() ?? '--',
+                              status: lote.status ?? '',
+                              idCogumelo: lote.idCogumelo ?? 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }, childCount: _salas.length),
+                ),
+              ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height:
+                          _isLoading || _hasError
+                              ? defaultPadding
+                              : defaultPadding / 4,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PainelSalasPage(),
+                              ),
                             );
                           },
-                        ),
-              ),
-              const SizedBox(
-                height: defaultPadding / 4,
-              ), // Aumentado o espaçamento
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PainelSalasPage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      height: 150,
-                      width: MediaQuery.of(context).size.width * 0.42,
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(100),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                            offset: const Offset(4, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(defaultPadding),
-                        child: Column(
-                          mainAxisAlignment:
-                              MainAxisAlignment
-                                  .spaceAround, // Melhor distribuição
-                          children: [
-                            Icon(
-                              Icons.meeting_room_outlined,
-                              size: 80, // Reduzido ligeiramente
-                              color: Colors.white,
+                          child: Container(
+                            height: 150,
+                            width: MediaQuery.of(context).size.width * 0.42,
+                            decoration: BoxDecoration(
+                              color: primaryColor,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(100),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                  offset: const Offset(4, 4),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Painel Salas',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            child: const Padding(
+                              padding: EdgeInsets.all(defaultPadding),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Icon(
+                                    Icons.meeting_room_outlined,
+                                    size: 80,
+                                    color: Colors.white,
+                                  ),
+                                  Text(
+                                    'Painel Salas',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: defaultPadding,
-                  ), // Espaçamento entre os botões
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CriarLotePage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      height: 150,
-                      width: MediaQuery.of(context).size.width * 0.42,
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(100),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                            offset: const Offset(4, 4),
                           ),
-                        ],
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(defaultPadding),
-                        child: Column(
-                          mainAxisAlignment:
-                              MainAxisAlignment
-                                  .spaceAround, // Melhor distribuição
-                          children: [
-                            Icon(
-                              Icons.add,
-                              size: 80, // Reduzido ligeiramente
-                              color: Colors.white,
+                        ),
+                        const SizedBox(width: defaultPadding),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CriarLotePage(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            height: 150,
+                            width: MediaQuery.of(context).size.width * 0.42,
+                            decoration: BoxDecoration(
+                              color: primaryColor,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(100),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                  offset: const Offset(4, 4),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Criar Lote',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            child: const Padding(
+                              padding: EdgeInsets.all(defaultPadding),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Icon(
+                                    Icons.add,
+                                    size: 80,
+                                    color: Colors.white,
+                                  ),
+                                  Text(
+                                    'Criar Lote',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: defaultPadding * 1.5),
+                  ],
+                ),
               ),
-              const SizedBox(
-                height: defaultPadding * 1.5,
-              ), // Aumentado o espaçamento final
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
