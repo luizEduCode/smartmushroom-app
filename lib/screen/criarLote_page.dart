@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/screen/sala_page.dart';
-import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+import 'package:smartmushroom_app/core/network/api_exception.dart';
+import 'package:smartmushroom_app/core/network/dio_client.dart';
+import 'package:smartmushroom_app/features/criar_lote/data/criar_lote_remote_datasource.dart';
 import 'package:smartmushroom_app/models/fases_cultivo_model.dart';
 import 'package:smartmushroom_app/models/cogumelos_model.dart';
 import 'package:smartmushroom_app/models/salas_disponiveis_model.dart';
+import 'package:smartmushroom_app/screen/sala_page.dart';
+import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class CriarLotePage extends StatefulWidget {
   const CriarLotePage({super.key});
@@ -17,6 +17,7 @@ class CriarLotePage extends StatefulWidget {
 }
 
 class _CriarLotePageState extends State<CriarLotePage> {
+  late final CriarLoteRemoteDataSource _dataSource;
   List<SalaDisponivel> _salasFinalizadas = [];
   SalaDisponivel? _selectedSala;
   bool _loadingSalas = true;
@@ -34,6 +35,7 @@ class _CriarLotePageState extends State<CriarLotePage> {
   @override
   void initState() {
     super.initState();
+    _dataSource = CriarLoteRemoteDataSource(DioClient());
     _carregarSalasFinalizadas();
     _carregarTiposCogumelos();
   }
@@ -45,46 +47,29 @@ class _CriarLotePageState extends State<CriarLotePage> {
     });
 
     try {
-      final url = Uri.parse(
-        "${getApiBaseUrl()}framework/lote/listarSalasDisponiveis",
-      );
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-
-        // Verificar se a resposta é uma lista diretamente
-        if (data is List) {
-          _salasFinalizadas =
-              data.map((json) => SalaDisponivel.fromJson(json)).toList();
-        }
-        // Verificar se a resposta é um mapa com estrutura esperada
-        else if (data is Map<String, dynamic>) {
-          if (data['success'] == true) {
-            List<dynamic> salasList = [];
-
-            if (data['data'] is List) {
-              salasList = data['data'];
-            } else if (data['data'] is Map &&
-                data['data']['salas_disponiveis'] is List) {
-              salasList = data['data']['salas_disponiveis'];
-            } else if (data['salas_disponiveis'] is List) {
-              salasList = data['salas_disponiveis'];
-            }
-
-            _salasFinalizadas =
-                salasList.map((json) => SalaDisponivel.fromJson(json)).toList();
-          } else {
-            _erroSalas = data['message'] ?? 'Erro ao carregar salas';
-          }
-        } else {
-          _erroSalas = 'Formato de resposta inesperado da API';
-        }
+      final salas = await _dataSource.fetchSalasDisponiveis();
+      if (mounted) {
+        setState(() {
+          _salasFinalizadas = salas;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _erroSalas = e.message;
+        });
       } else {
-        _erroSalas = 'Erro HTTP ${response.statusCode}';
+        _erroSalas = e.message;
       }
     } catch (e) {
-      _erroSalas = 'Falha ao carregar salas: $e';
+      final mensagem = 'Falha ao carregar salas: $e';
+      if (mounted) {
+        setState(() {
+          _erroSalas = mensagem;
+        });
+      } else {
+        _erroSalas = mensagem;
+      }
     } finally {
       if (mounted) setState(() => _loadingSalas = false);
     }
@@ -97,64 +82,29 @@ class _CriarLotePageState extends State<CriarLotePage> {
     });
 
     try {
-      final url = Uri.parse("${getApiBaseUrl()}framework/cogumelo/listarTodos");
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-
-        // Verificar se a resposta é uma lista diretamente
-        if (data is List) {
-          _mushroomTypes =
-              data.map((json) {
-                try {
-                  return cogumelos.fromJson(json);
-                } catch (_) {
-                  return cogumelos(
-                    idCogumelo: 0,
-                    nomeCogumelo: 'Erro no parsing',
-                    descricao: 'Erro no parsing',
-                  );
-                }
-              }).toList();
-        }
-        // Verificar se a resposta é um mapa com estrutura esperada
-        else if (data is Map<String, dynamic>) {
-          if (data['success'] == true) {
-            List<dynamic> cogumelosList = [];
-
-            if (data['data'] is List) {
-              cogumelosList = data['data'];
-            } else if (data['data'] is Map &&
-                data['data']['cogumelos'] is List) {
-              cogumelosList = data['data']['cogumelos'];
-            } else if (data['cogumelos'] is List) {
-              cogumelosList = data['cogumelos'];
-            }
-
-            _mushroomTypes =
-                cogumelosList.map((json) {
-                  try {
-                    return cogumelos.fromJson(json);
-                  } catch (_) {
-                    return cogumelos(
-                      idCogumelo: 0,
-                      nomeCogumelo: 'Erro no parsing',
-                      descricao: 'Erro no parsing',
-                    );
-                  }
-                }).toList();
-          } else {
-            _erroMushrooms = data['message'] ?? 'Erro ao carregar cogumelos';
-          }
-        } else {
-          _erroMushrooms = 'Formato de resposta inesperado da API';
-        }
+      final cogumelosList = await _dataSource.fetchCogumelos();
+      if (mounted) {
+        setState(() {
+          _mushroomTypes = cogumelosList;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _erroMushrooms = e.message;
+        });
       } else {
-        _erroMushrooms = 'Erro HTTP ${response.statusCode}';
+        _erroMushrooms = e.message;
       }
     } catch (e) {
-      _erroMushrooms = 'Falha ao carregar cogumelos: $e';
+      final mensagem = 'Falha ao carregar cogumelos: $e';
+      if (mounted) {
+        setState(() {
+          _erroMushrooms = mensagem;
+        });
+      } else {
+        _erroMushrooms = mensagem;
+      }
     } finally {
       if (mounted) setState(() => _loadingMushrooms = false);
     }
@@ -169,63 +119,30 @@ class _CriarLotePageState extends State<CriarLotePage> {
     });
 
     try {
-      final url = Uri.parse(
-        "${getApiBaseUrl()}framework/faseCultivo/listarPorCogumelo/${_selectedMushroom!.idCogumelo}",
-      );
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-
-        // Verificar se a resposta é uma lista diretamente
-        if (data is List) {
-          _cultivationPhases =
-              data.map((json) {
-                try {
-                  return fases_cultivo.fromJson(json);
-                } catch (_) {
-                  return fases_cultivo(
-                    idFaseCultivo: 0,
-                    nomeFaseCultivo: 'Erro no parsing',
-                  );
-                }
-              }).toList();
-        }
-        // Verificar se a resposta é um mapa com estrutura esperada
-        else if (data is Map<String, dynamic>) {
-          if (data['success'] == true) {
-            List<dynamic> fasesList = [];
-
-            if (data['data'] is List) {
-              fasesList = data['data'];
-            } else if (data['data'] is Map && data['data']['fases'] is List) {
-              fasesList = data['data']['fases'];
-            } else if (data['fases'] is List) {
-              fasesList = data['fases'];
-            }
-
-            _cultivationPhases =
-                fasesList.map((json) {
-                  try {
-                    return fases_cultivo.fromJson(json);
-                  } catch (_) {
-                    return fases_cultivo(
-                      idFaseCultivo: 0,
-                      nomeFaseCultivo: 'Erro no parsing',
-                    );
-                  }
-                }).toList();
-          } else {
-            _erroPhases = data['message'] ?? 'Erro ao carregar fases';
-          }
-        } else {
-          _erroPhases = 'Formato de resposta inesperado da API';
-        }
+      final fases =
+          await _dataSource.fetchFasesPorCogumelo(_selectedMushroom!.idCogumelo);
+      if (mounted) {
+        setState(() {
+          _cultivationPhases = fases;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _erroPhases = e.message;
+        });
       } else {
-        _erroPhases = 'Erro HTTP ${response.statusCode}';
+        _erroPhases = e.message;
       }
     } catch (e) {
-      _erroPhases = 'Falha ao carregar fases: $e';
+      final mensagem = 'Falha ao carregar fases: $e';
+      if (mounted) {
+        setState(() {
+          _erroPhases = mensagem;
+        });
+      } else {
+        _erroPhases = mensagem;
+      }
     } finally {
       if (mounted) setState(() => _loadingPhases = false);
     }
@@ -242,48 +159,46 @@ class _CriarLotePageState extends State<CriarLotePage> {
     }
 
     try {
-      final url = Uri.parse('${getApiBaseUrl()}framework/lote/adicionar');
       final now = DateTime.now();
       final dataInicio =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-      final response = await http.post(
-        url,
-        headers: {'Accept': 'application/json'},
-        body: {
-          'idSala': _selectedSala!.idSala.toString(),
-          'idCogumelo': _selectedMushroom!.idCogumelo.toString(),
-          'dataInicio': dataInicio,
-          'status': 'ativo',
-          'faseCultivo': _selectedPhase!.idFaseCultivo.toString(),
-        },
+      final idLote = await _dataSource.criarLote(
+        idSala: _selectedSala!.idSala,
+        idCogumelo: _selectedMushroom!.idCogumelo,
+        idFaseCultivo: _selectedPhase!.idFaseCultivo ?? 0,
+        dataInicio: dataInicio,
       );
 
-      if (response.statusCode == 201) {
-        final responseData = jsonDecode(response.body);
-
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Lote criado com sucesso!')),
         );
 
-        final idLote = responseData['idLote']?.toString() ?? '0';
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (context) =>
-                    SalaPage(idLote: idLote, nomeSala: _selectedSala!.nomeSala),
+            builder: (context) => SalaPage(
+              idLote: idLote.isNotEmpty ? idLote : '0',
+              nomeSala: _selectedSala!.nomeSala,
+            ),
           ),
         );
-      } else {
-        throw Exception('Erro HTTP ${response.statusCode}: ${response.body}');
+      }
+    } on ApiException catch (e) {
+      debugPrint('Erro: ${e.message}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao criar lote: ${e.message}')),
+        );
       }
     } catch (e) {
       debugPrint('Erro: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao criar lote: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao criar lote: ${e.toString()}')),
+        );
+      }
     }
   }
 

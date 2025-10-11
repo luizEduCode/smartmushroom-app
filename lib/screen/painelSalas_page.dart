@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/core/network/dio_client.dart';
+import 'package:smartmushroom_app/features/painel_salas/data/painel_salas_remote_datasource.dart';
 import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
@@ -17,6 +17,7 @@ class PainelSalasPage extends StatefulWidget {
 
 class _PainelSalasPageState extends State<PainelSalasPage> {
   late Timer _timer;
+  late final PainelSalasRemoteDataSource _dataSource;
   List<Salas> _salas = [];
   bool _isLoading = true;
   bool _hasError = false;
@@ -25,6 +26,7 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
   @override
   void initState() {
     super.initState();
+    _dataSource = PainelSalasRemoteDataSource(DioClient());
     fetchSalas();
 
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
@@ -40,31 +42,15 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(
-        Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
-        headers: {'Accept': 'application/json'},
-      );
+      final salas = await _dataSource.fetchSalas();
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final salasComLotes = SalaLotesAtivos.fromJson(data);
-
-        if (mounted) {
-          setState(() {
-            _salas = salasComLotes.salas ?? [];
-            _isLoading = false;
-            _hasError = false;
-            _errorMessage = null;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _isLoading = false;
-            _errorMessage = 'Sem lotes ativos';
-          });
-        }
+      if (mounted) {
+        setState(() {
+          _salas = salas;
+          _isLoading = false;
+          _hasError = false;
+          _errorMessage = null;
+        });
       }
     } catch (e) {
       if (mounted) {

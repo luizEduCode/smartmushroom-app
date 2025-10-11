@@ -327,9 +327,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/core/network/dio_client.dart';
+import 'package:smartmushroom_app/features/home/data/home_remote_datasource.dart';
 import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/criarLote_page.dart';
 import 'package:smartmushroom_app/screen/ip_page.dart';
@@ -347,13 +347,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Timer _timer;
-  List _salas = [];
+  late final HomeRemoteDataSource _dataSource;
+  List<Salas> _salas = [];
   bool _isLoading = true;
   bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
+    _dataSource = HomeRemoteDataSource(DioClient());
     fetchSalas();
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchSalas();
@@ -368,32 +370,14 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> fetchSalas() async {
     try {
-      final response = await http.get(
-        Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
-        headers: {'Accept': 'application/json'},
-      );
+      final salas = await _dataSource.fetchSalas();
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        // Parse usando o modelo
-        final salasAtivos = SalaLotesAtivos.fromJson(data);
-        final List<Salas> listaSalas = salasAtivos.salas ?? [];
-
-        if (mounted) {
-          setState(() {
-            _salas = listaSalas;
-            _isLoading = false;
-            _hasError = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _isLoading = false;
-          });
-        }
+      if (mounted) {
+        setState(() {
+          _salas = salas;
+          _isLoading = false;
+          _hasError = false;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -439,67 +423,62 @@ class _HomePageState extends State<HomePage> {
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.all(defaultPadding),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          SizedBox(width: defaultPadding),
-                          Text(
-                            'Olá Colaborador!',
-                            style: TextStyle(
-                              color: primaryColor,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Olá Colaborador!',
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: defaultPadding / 2),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const SizedBox(width: defaultPadding),
-                          StreamBuilder<String>(
-                            stream: getCurrentDateTimeStream(),
-                            builder: (context, snapshot) {
-                              return Text(
-                                snapshot.data ?? '',
-                                style: const TextStyle(
-                                  color: primaryColor,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              );
-                            },
+                    ),
+                    const SizedBox(height: defaultPadding / 2),
+                    StreamBuilder<String>(
+                      stream: getCurrentDateTimeStream(),
+                      builder: (context, snapshot) {
+                        return Text(
+                          snapshot.data ?? '',
+                          style: const TextStyle(
+                            color: primaryColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: defaultPadding * 1.5),
-                ]),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: defaultPadding * 1.5),
+                  ],
+                ),
               ),
             ),
             if (_isLoading || _hasError)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
-                sliver: SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.3,
-                    child: Center(
-                      child:
-                          _isLoading
-                              ? const CircularProgressIndicator()
-                              : const Text('Erro ao carregar dados'),
-                    ),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: defaultPadding,
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child:
+                              _isLoading
+                                  ? const CircularProgressIndicator()
+                                  : const Text('Erro ao carregar dados'),
+                        ),
+                      ),
+                      const SizedBox(height: defaultPadding),
+                      _buildActionsRow(context),
+                      const SizedBox(height: defaultPadding * 1.5),
+                    ],
                   ),
                 ),
               )
-            else
+            else ...[
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
                 sliver: SliverGrid(
@@ -547,127 +526,117 @@ class _HomePageState extends State<HomePage> {
                   }, childCount: _salas.length),
                 ),
               ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height:
-                          _isLoading || _hasError
-                              ? defaultPadding
-                              : defaultPadding / 4,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const PainelSalasPage(),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            height: 150,
-                            width: MediaQuery.of(context).size.width * 0.42,
-                            decoration: BoxDecoration(
-                              color: primaryColor,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(100),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                  offset: const Offset(4, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(defaultPadding),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  Icon(
-                                    Icons.meeting_room_outlined,
-                                    size: 80,
-                                    color: Colors.white,
-                                  ),
-                                  Text(
-                                    'Painel Salas',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: defaultPadding),
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CriarLotePage(),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            height: 150,
-                            width: MediaQuery.of(context).size.width * 0.42,
-                            decoration: BoxDecoration(
-                              color: primaryColor,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(100),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                  offset: const Offset(4, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(defaultPadding),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  Icon(
-                                    Icons.add,
-                                    size: 80,
-                                    color: Colors.white,
-                                  ),
-                                  Text(
-                                    'Criar Lote',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: defaultPadding * 1.5),
-                  ],
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: defaultPadding / 4),
+                      _buildActionsRow(context),
+                      const SizedBox(height: defaultPadding * 1.5),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
+}
+
+Widget _buildActionsRow(BuildContext context) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceAround,
+    children: [
+      InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PainelSalasPage()),
+          );
+        },
+        child: Container(
+          height: 150,
+          width: MediaQuery.of(context).size.width * 0.42,
+          decoration: BoxDecoration(
+            color: primaryColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(100),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: const Offset(4, 4),
+              ),
+            ],
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(defaultPadding),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Icon(
+                  Icons.meeting_room_outlined,
+                  size: 80,
+                  color: Colors.white,
+                ),
+                Text(
+                  'Painel Salas',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: defaultPadding),
+      InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CriarLotePage()),
+          );
+        },
+        child: Container(
+          height: 150,
+          width: MediaQuery.of(context).size.width * 0.42,
+          decoration: BoxDecoration(
+            color: primaryColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(100),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: const Offset(4, 4),
+              ),
+            ],
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(defaultPadding),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Icon(Icons.add, size: 80, color: Colors.white),
+                Text(
+                  'Criar Lote',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
 }

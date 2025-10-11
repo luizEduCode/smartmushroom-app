@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/core/network/api_exception.dart';
+import 'package:smartmushroom_app/core/network/dio_client.dart';
+import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
@@ -33,6 +34,7 @@ class SalaPage extends StatefulWidget {
 
 class _SalaPageState extends State<SalaPage> {
   late Timer _timer;
+  late final SalaRemoteDataSource _dataSource;
 
   bool _isLoading = true;
   bool _hasFetchError = false;
@@ -43,12 +45,12 @@ class _SalaPageState extends State<SalaPage> {
   final Map<int, bool> _atuadoresStatus = {}; // 1..4
 
   int? _idCogumelo;
-  int?
-  _idFaseCultivo; // manter para compat com EditarParametrosPage (0 se null)
+  int? _idFaseCultivo; // manter para compat com EditarParametrosPage (0 se null)
 
   @override
   void initState() {
     super.initState();
+    _dataSource = SalaRemoteDataSource(DioClient());
     _carregarTudo(); // primeira carga
     _timer = Timer.periodic(const Duration(seconds: 10), (_) {
       _buscarUltimaLeitura(); // somente o que muda
@@ -84,15 +86,8 @@ class _SalaPageState extends State<SalaPage> {
 
   // ---------- Lote ----------
   Future<void> _buscarDadosLote() async {
-    final url = Uri.parse(
-      '${getApiBaseUrl()}framework/lote/listarIdLote/${widget.idLote}',
-    );
-    final resp = await http.get(url, headers: {'Accept': 'application/json'});
-    if (resp.statusCode != 200)
-      throw Exception('Falha lote: ${resp.statusCode}');
-    final map = jsonDecode(resp.body) as Map<String, dynamic>;
-
-    final lote = LoteModel.fromJson(map);
+    final lote = await _dataSource.fetchLote(widget.idLote);
+    if (!mounted) return;
     setState(() {
       _lote = lote;
       _idCogumelo = lote.idCogumelo;
@@ -102,17 +97,8 @@ class _SalaPageState extends State<SalaPage> {
 
   // ---------- Leitura (tempo real) ----------
   Future<void> _buscarUltimaLeitura() async {
-    final url = Uri.parse(
-      '${getApiBaseUrl()}framework/leitura/listarUltimaLeitura/${widget.idLote}',
-    );
-    final resp = await http.get(url, headers: {'Accept': 'application/json'});
-    if (resp.statusCode != 200)
-      throw Exception('Falha leitura: ${resp.statusCode}');
-
-    final list = jsonDecode(resp.body) as List<dynamic>;
-    if (list.isEmpty) return;
-
-    final leitura = LeituraModel.fromJson(list.first as Map<String, dynamic>);
+    final leitura = await _dataSource.fetchUltimaLeitura(widget.idLote);
+    if (!mounted) return;
     setState(() {
       _leitura = leitura;
     });
@@ -120,44 +106,27 @@ class _SalaPageState extends State<SalaPage> {
 
   Future<void> _carregarStatusAtuadores() async {
     try {
-      final url = Uri.parse(
-        '${getApiBaseUrl()}framework/controleAtuador/listarIdLote/${widget.idLote}',
-      );
+      final registros = await _dataSource.fetchControleAtuadores(widget.idLote);
 
-      final resp = await http.get(url, headers: {'Accept': 'application/json'});
-      if (resp.statusCode != 200) {
-        throw Exception('Falha status atuadores: ${resp.statusCode}');
-      }
-
-      final raw = jsonDecode(resp.body);
-      if (raw is! List) return;
-
-      // Mantém o registro MAIS RECENTE por idAtuador
       final Map<int, ControleAtuadorModel> maisRecentePorAtuador = {};
 
-      for (final item in raw) {
-        if (item is! Map<String, dynamic>) continue;
-        final m = ControleAtuadorModel.fromJson(item);
-
-        final id = m.idAtuador;
-        if (id == null) continue;
-
+      for (final registro in registros) {
+        final id = registro.idAtuador;
         final atual = maisRecentePorAtuador[id];
         if (atual == null) {
-          maisRecentePorAtuador[id] = m;
+          maisRecentePorAtuador[id] = registro;
         } else {
-          final dtNovo = _parseDateTime(m.dataCriacao);
+          final dtNovo = _parseDateTime(registro.dataCriacao);
           final dtAtual = _parseDateTime(atual.dataCriacao);
           if (dtNovo.isAfter(dtAtual)) {
-            maisRecentePorAtuador[id] = m;
+            maisRecentePorAtuador[id] = registro;
           }
         }
       }
 
-      // Converte para mapa simples idAtuador -> bool (ativo/inativo)
       final Map<int, bool> novosStatus = {};
       maisRecentePorAtuador.forEach((id, m) {
-        final ativo = (m.statusAtuador ?? '').toLowerCase() == 'ativo';
+        final ativo = (m.statusAtuador).toLowerCase() == 'ativo';
         novosStatus[id] = ativo;
       });
 
@@ -195,35 +164,23 @@ class _SalaPageState extends State<SalaPage> {
     });
 
     try {
-      final url = Uri.parse(
-        '${getApiBaseUrl()}framework/controleAtuador/adicionar',
+      await _dataSource.alterarStatusAtuador(
+        idAtuador: idAtuador,
+        idLote: widget.idLote,
+        ativo: novo,
       );
-      final body = {
-        'idAtuador': idAtuador.toString(),
-        'idLote': widget.idLote,
-        'statusAtuador': novo ? 'ativo' : 'inativo',
-      };
-
-      final resp = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        },
-        body: body,
-        encoding: Encoding.getByName('utf-8'),
-      );
-
-      if (resp.statusCode == 200 || resp.statusCode == 201) {
-        await _carregarStatusAtuadores(); // confirma com backend
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Status alterado com sucesso!')),
-          );
-        }
-      } else {
-        setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
-        throw Exception('Falha alterar status (${resp.statusCode})');
+      await _carregarStatusAtuadores();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Status alterado com sucesso!')),
+        );
+      }
+    } on ApiException catch (e) {
+      setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
       }
     } catch (e) {
       setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
@@ -240,36 +197,29 @@ class _SalaPageState extends State<SalaPage> {
   // ---------- Finalizar / Excluir ----------
   Future<void> _finalizarLote() async {
     try {
-      final response = await http.delete(
-        Uri.parse('${getApiBaseUrl()}framework/lote/deletar/${widget.idLote}'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['message'] == 'Lote finalizado com sucesso') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Lote finalizado com sucesso!')),
-            );
-          }
+      final message = await _dataSource.finalizarLote(widget.idLote);
+      if (mounted) {
+        if (message == 'Lote finalizado com sucesso') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lote finalizado com sucesso!')),
+          );
         } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro ao finalizar lote!')),
-            );
-          }
-        }
-      } else {
-        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Erro ao conectar ao servidor: ${response.statusCode}',
+                message.isNotEmpty
+                    ? message
+                    : 'Erro ao finalizar lote!',
               ),
             ),
           );
         }
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: ${e.message}')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -282,38 +232,29 @@ class _SalaPageState extends State<SalaPage> {
 
   Future<void> _excluirLote() async {
     try {
-      final response = await http.delete(
-        Uri.parse(
-          '${getApiBaseUrl()}framework/lote/deletar_fisico/${widget.idLote}',
-        ),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['message'] == 'Lote excluido com sucesso') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Lote excluido com sucesso!')),
-            );
-          }
+      final message = await _dataSource.excluirLote(widget.idLote);
+      if (mounted) {
+        if (message == 'Lote excluido com sucesso') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lote excluido com sucesso!')),
+          );
         } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erro ao excluir lote!')),
-            );
-          }
-        }
-      } else {
-        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Erro ao conectar ao servidor: ${response.statusCode}',
+                message.isNotEmpty
+                    ? message
+                    : 'Erro ao excluir lote!',
               ),
             ),
           );
         }
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: ${e.message}')),
+        );
       }
     } catch (e) {
       if (mounted) {
