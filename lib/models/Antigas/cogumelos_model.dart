@@ -1,16 +1,16 @@
-class cogumelos {
+class Cogumelos {
   final int idCogumelo;
   final String nomeCogumelo;
   final String descricao;
 
-  const cogumelos({
+  const Cogumelos({
     required this.idCogumelo,
     required this.nomeCogumelo,
     required this.descricao,
   });
 
-  factory cogumelos.fromJson(Map<String, dynamic> json) {
-    return cogumelos(
+  factory Cogumelos.fromJson(Map<String, dynamic> json) {
+    return Cogumelos(
       idCogumelo: int.tryParse(json['idCogumelo']?.toString() ?? '0') ?? 0,
       nomeCogumelo: json['nomeCogumelo']?.toString() ?? '',
       descricao: json['descricao']?.toString() ?? '',

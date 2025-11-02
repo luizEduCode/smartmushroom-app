@@ -1,5 +1,5 @@
 import 'package:smartmushroom_app/core/network/dio_client.dart';
-import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
+import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
 
 class HomeRemoteDataSource {
   HomeRemoteDataSource(this._dioClient);

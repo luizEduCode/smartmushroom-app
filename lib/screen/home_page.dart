@@ -330,7 +330,7 @@ import 'package:intl/intl.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/home/data/home_remote_datasource.dart';
-import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
+import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/criarLote_page.dart';
 import 'package:smartmushroom_app/screen/ip_page.dart';
 import 'package:smartmushroom_app/screen/painelSalas_page.dart';
@@ -489,7 +489,7 @@ class _HomePageState extends State<HomePage> {
                     childAspectRatio: 1.07,
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
-                    final sala = _salas[index] as Salas;
+                    final sala = _salas[index];
                     return Column(
                       children: [
                         ...?sala.lotes?.map(

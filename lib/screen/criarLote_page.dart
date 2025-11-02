@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/criar_lote/data/criar_lote_remote_datasource.dart';
-import 'package:smartmushroom_app/models/fases_cultivo_model.dart';
-import 'package:smartmushroom_app/models/cogumelos_model.dart';
-import 'package:smartmushroom_app/models/salas_disponiveis_model.dart';
+import 'package:smartmushroom_app/models/Antigas/fases_cultivo_model.dart';
+import 'package:smartmushroom_app/models/Antigas/cogumelos_model.dart';
+import 'package:smartmushroom_app/models/Antigas/salas_disponiveis_model.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
@@ -23,9 +23,9 @@ class _CriarLotePageState extends State<CriarLotePage> {
   bool _loadingSalas = true;
   String? _erroSalas;
 
-  List<cogumelos> _mushroomTypes = [];
+  List<Cogumelos> _mushroomTypes = [];
   List<fases_cultivo> _cultivationPhases = [];
-  cogumelos? _selectedMushroom;
+  Cogumelos? _selectedMushroom;
   fases_cultivo? _selectedPhase;
   bool _loadingMushrooms = true;
   bool _loadingPhases = true;
@@ -119,8 +119,9 @@ class _CriarLotePageState extends State<CriarLotePage> {
     });
 
     try {
-      final fases =
-          await _dataSource.fetchFasesPorCogumelo(_selectedMushroom!.idCogumelo);
+      final fases = await _dataSource.fetchFasesPorCogumelo(
+        _selectedMushroom!.idCogumelo,
+      );
       if (mounted) {
         setState(() {
           _cultivationPhases = fases;
@@ -178,10 +179,11 @@ class _CriarLotePageState extends State<CriarLotePage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => SalaPage(
-              idLote: idLote.isNotEmpty ? idLote : '0',
-              nomeSala: _selectedSala!.nomeSala,
-            ),
+            builder:
+                (context) => SalaPage(
+                  idLote: idLote.isNotEmpty ? idLote : '0',
+                  nomeSala: _selectedSala!.nomeSala,
+                ),
           ),
         );
       }
@@ -336,7 +338,7 @@ class _CriarLotePageState extends State<CriarLotePage> {
       );
     }
 
-    return DropdownButtonFormField<cogumelos>(
+    return DropdownButtonFormField<Cogumelos>(
       decoration: const InputDecoration(
         labelText: 'Tipo de Cogumelo',
         border: OutlineInputBorder(),
@@ -345,7 +347,7 @@ class _CriarLotePageState extends State<CriarLotePage> {
       value: _selectedMushroom,
       items:
           _mushroomTypes.map((cogumelo) {
-            return DropdownMenuItem<cogumelos>(
+            return DropdownMenuItem<Cogumelos>(
               value: cogumelo,
               child: Text(cogumelo.nomeCogumelo),
             );

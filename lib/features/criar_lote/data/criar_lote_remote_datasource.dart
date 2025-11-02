@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
-import 'package:smartmushroom_app/models/cogumelos_model.dart';
-import 'package:smartmushroom_app/models/fases_cultivo_model.dart';
-import 'package:smartmushroom_app/models/salas_disponiveis_model.dart';
+import 'package:smartmushroom_app/models/Antigas/cogumelos_model.dart';
+import 'package:smartmushroom_app/models/Antigas/fases_cultivo_model.dart';
+import 'package:smartmushroom_app/models/Antigas/salas_disponiveis_model.dart';
 
 class CriarLoteRemoteDataSource {
   CriarLoteRemoteDataSource(this._dioClient);
@@ -18,12 +18,12 @@ class CriarLoteRemoteDataSource {
     return _parseSalaDisponivel(response.data);
   }
 
-  Future<List<cogumelos>> fetchCogumelos() async {
+  Future<List<Cogumelos>> fetchCogumelos() async {
     final response = await _dioClient.get<dynamic>(
       'framework/cogumelo/listarTodos',
     );
 
-    return _parseLista(response.data, 'cogumelos', cogumelos.fromJson);
+    return _parseLista(response.data, 'Cogumelos', Cogumelos.fromJson);
   }
 
   Future<List<fases_cultivo>> fetchFasesPorCogumelo(int idCogumelo) async {
@@ -57,10 +57,7 @@ class CriarLoteRemoteDataSource {
 
     final statusCode = response.statusCode ?? 500;
     if (statusCode != 201 && (statusCode < 200 || statusCode >= 300)) {
-      throw ApiException(
-        'Erro ao criar lote.',
-        statusCode: statusCode,
-      );
+      throw ApiException('Erro ao criar lote.', statusCode: statusCode);
     }
 
     final data = response.data;
@@ -121,7 +118,10 @@ class CriarLoteRemoteDataSource {
         if (inner is Map<String, dynamic>) {
           final nested = inner[key];
           if (nested is List) {
-            return nested.whereType<Map<String, dynamic>>().map(mapper).toList();
+            return nested
+                .whereType<Map<String, dynamic>>()
+                .map(mapper)
+                .toList();
           }
         }
       }

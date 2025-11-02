@@ -1,15 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
-import 'package:smartmushroom_app/models/fases_cultivo_model.dart';
-import 'package:smartmushroom_app/models/parametrosidLote_model.dart';
+import 'package:smartmushroom_app/models/Fase_Cultivo_Model.dart';
+import 'package:smartmushroom_app/models/Parametro_Model.dart';
 
 class EditarParametrosRemoteDataSource {
   EditarParametrosRemoteDataSource(this._dioClient);
 
   final DioClient _dioClient;
 
-  Future<ParametrosIdLote> fetchParametros(String idLote) async {
+  Future<ParametroModel> fetchParametros(String idLote) async {
     final response = await _dioClient.get<dynamic>(
       'framework/parametros/listarIdParametro/$idLote',
     );
@@ -18,7 +18,7 @@ class EditarParametrosRemoteDataSource {
     final data = response.data;
 
     if (statusCode == 200 && data is Map<String, dynamic>) {
-      return ParametrosIdLote.fromJson(data);
+      return ParametroModel.fromJson(data);
     }
 
     if (statusCode == 404 && data is Map<String, dynamic>) {
@@ -26,13 +26,10 @@ class EditarParametrosRemoteDataSource {
       throw ApiException(message, statusCode: statusCode);
     }
 
-    throw ApiException(
-      'Erro ao carregar parâmetros.',
-      statusCode: statusCode,
-    );
+    throw ApiException('Erro ao carregar parâmetros.', statusCode: statusCode);
   }
 
-  Future<fases_cultivo?> fetchParametrosPorFase(String idFase) async {
+  Future<FaseCultivoModel?> fetchParametrosPorFase(String idFase) async {
     final response = await _dioClient.get<dynamic>(
       'framework/faseCultivo/listarIdFaseCultivo/$idFase',
     );
@@ -41,13 +38,16 @@ class EditarParametrosRemoteDataSource {
     final data = response.data;
 
     if (statusCode == 200 && data is Map<String, dynamic>) {
-      return fases_cultivo.fromJson(data);
+      return FaseCultivoModel.fromJson(data);
     }
 
-    throw ApiException('Erro ao carregar parâmetros da fase.', statusCode: statusCode);
+    throw ApiException(
+      'Erro ao carregar parâmetros da fase.',
+      statusCode: statusCode,
+    );
   }
 
-  Future<List<fases_cultivo>> fetchFasesPorCogumelo(int idCogumelo) async {
+  Future<List<FaseCultivoModel>> fetchFasesPorCogumelo(int idCogumelo) async {
     final response = await _dioClient.get<dynamic>(
       'framework/faseCultivo/listarPorCogumelo/$idCogumelo',
     );
@@ -90,11 +90,11 @@ class EditarParametrosRemoteDataSource {
     }
   }
 
-  List<fases_cultivo> _parseFases(dynamic data) {
+  List<FaseCultivoModel> _parseFases(dynamic data) {
     if (data is List) {
       return data
           .whereType<Map<String, dynamic>>()
-          .map(fases_cultivo.fromJson)
+          .map(FaseCultivoModel.fromJson)
           .toList();
     }
 
@@ -104,7 +104,7 @@ class EditarParametrosRemoteDataSource {
         if (inner is List) {
           return inner
               .whereType<Map<String, dynamic>>()
-              .map(fases_cultivo.fromJson)
+              .map(FaseCultivoModel.fromJson)
               .toList();
         }
         if (inner is Map<String, dynamic>) {
@@ -112,7 +112,7 @@ class EditarParametrosRemoteDataSource {
           if (nested is List) {
             return nested
                 .whereType<Map<String, dynamic>>()
-                .map(fases_cultivo.fromJson)
+                .map(FaseCultivoModel.fromJson)
                 .toList();
           }
         }
@@ -120,7 +120,7 @@ class EditarParametrosRemoteDataSource {
       if (data['fases'] is List) {
         return (data['fases'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(fases_cultivo.fromJson)
+            .map(FaseCultivoModel.fromJson)
             .toList();
       }
     }

@@ -9,7 +9,7 @@ import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
-import 'package:smartmushroom_app/screen/editarParametros_page.dart';
+import 'package:smartmushroom_app/screen/editar_parametros/editar_parametros_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 import 'package:smartmushroom_app/models/Controle_Atuador_Model.dart';
@@ -45,7 +45,8 @@ class _SalaPageState extends State<SalaPage> {
   final Map<int, bool> _atuadoresStatus = {}; // 1..4
 
   int? _idCogumelo;
-  int? _idFaseCultivo; // manter para compat com EditarParametrosPage (0 se null)
+  int?
+  _idFaseCultivo; // manter para compat com EditarParametrosPage (0 se null)
 
   @override
   void initState() {
@@ -178,9 +179,9 @@ class _SalaPageState extends State<SalaPage> {
     } on ApiException catch (e) {
       setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (e) {
       setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
@@ -207,9 +208,7 @@ class _SalaPageState extends State<SalaPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                message.isNotEmpty
-                    ? message
-                    : 'Erro ao finalizar lote!',
+                message.isNotEmpty ? message : 'Erro ao finalizar lote!',
               ),
             ),
           );
@@ -217,9 +216,9 @@ class _SalaPageState extends State<SalaPage> {
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${e.message}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: ${e.message}')));
       }
     } catch (e) {
       if (mounted) {
@@ -242,9 +241,7 @@ class _SalaPageState extends State<SalaPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                message.isNotEmpty
-                    ? message
-                    : 'Erro ao excluir lote!',
+                message.isNotEmpty ? message : 'Erro ao excluir lote!',
               ),
             ),
           );
@@ -252,9 +249,9 @@ class _SalaPageState extends State<SalaPage> {
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${e.message}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro: ${e.message}')));
       }
     } catch (e) {
       if (mounted) {
@@ -477,9 +474,7 @@ class _SalaPageState extends State<SalaPage> {
                                 MaterialPageRoute(
                                   builder:
                                       (context) => EditarParametrosPage(
-                                        idLote: widget.idLote,
-                                        idCogumelo: _idCogumelo ?? 0,
-                                        idFaseCultivo: _idFaseCultivo ?? 0,
+                                        idLote: int.parse(widget.idLote),
                                       ),
                                 ),
                               );

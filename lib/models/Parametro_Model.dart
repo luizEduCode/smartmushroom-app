@@ -1,4 +1,4 @@
-class ParametrosIdLote {
+class ParametroModel {
   int? idConfig;
   int? idLote;
   String? umidadeMin;
@@ -8,18 +8,9 @@ class ParametrosIdLote {
   String? co2Max;
   String? dataCriacao;
 
-  ParametrosIdLote({
-    this.idConfig,
-    this.idLote,
-    this.umidadeMin,
-    this.umidadeMax,
-    this.temperaturaMin,
-    this.temperaturaMax,
-    this.co2Max,
-    this.dataCriacao,
-  });
+  ParametroModel();
 
-  ParametrosIdLote.fromJson(Map<String, dynamic> json) {
+  ParametroModel.fromJson(Map<String, dynamic> json) {
     idConfig = json['idConfig'];
     idLote = json['idLote'];
     umidadeMin = json['umidadeMin'];
@@ -31,7 +22,7 @@ class ParametrosIdLote {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data['idConfig'] = idConfig;
     data['idLote'] = idLote;
     data['umidadeMin'] = umidadeMin;
