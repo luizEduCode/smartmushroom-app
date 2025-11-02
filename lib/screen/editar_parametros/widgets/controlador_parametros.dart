@@ -55,8 +55,7 @@ ParamVisualTheme themeFor(ParamLevel level) {
         trackLeft: Colors.black87,
       );
     case ParamLevel.ideal:
-    default:
-      return ParamVisualTheme(
+    return ParamVisualTheme(
         cardBg: const Color(0xFFEFFAF1),
         accent: const Color(0xFF22C55E),
         chipBorder: const Color(0xFFD1FAE5),
@@ -141,7 +140,7 @@ class ControladorParametros extends StatelessWidget {
                       Text(
                         'Ideal: ${idealMin.toStringAsFixed(0)}–${idealMax.toStringAsFixed(0)} $unit',
                         style: TextStyle(
-                          color: dark.withOpacity(0.6),
+                          color: dark.withValues(alpha:0.6),
                           fontSize: 12,
                         ),
                       ),
@@ -167,7 +166,7 @@ class ControladorParametros extends StatelessWidget {
                 Text(
                   unit,
                   style: TextStyle(
-                    color: dark.withOpacity(0.8),
+                    color: dark.withValues(alpha:0.8),
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -288,7 +287,7 @@ class _Pill extends StatelessWidget {
         border: Border.all(color: borderColor, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha:0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -361,7 +360,7 @@ class _IdealRangeSlider extends StatelessWidget {
               width: (xIdealR - xIdealL).clamp(0, w),
               height: 8,
               decoration: BoxDecoration(
-                color: activeColor.withOpacity(0.25),
+                color: activeColor.withValues(alpha:0.25),
                 borderRadius: BorderRadius.circular(999),
               ),
             ),

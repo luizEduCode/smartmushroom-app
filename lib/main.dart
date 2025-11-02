@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:smartmushroom_app/constants.dart';
-import 'package:smartmushroom_app/screen/editar_parametros/editar_parametros_page.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:smartmushroom_app/screen/splash_screen.dart';
 
