@@ -545,12 +545,18 @@ class _SalaPageState extends State<SalaPage> {
                       // Gráficos (fl_chart)
                       _buildChartSection(
                         'Temperatura',
-                        const TemperatureLinechart(),
+                        TemperatureLinechart(idLote: widget.idLote),
                       ),
                       const SizedBox(height: 20),
-                      _buildChartSection('Umidade', const HumidityLinechart()),
+                      _buildChartSection(
+                        'Umidade',
+                        HumidityLinechart(idLote: widget.idLote),
+                      ),
                       const SizedBox(height: 20),
-                      _buildChartSection('Co²', const Co2Linechart()),
+                      _buildChartSection(
+                        'Co²',
+                        Co2Linechart(idLote: widget.idLote),
+                      ),
                       const SizedBox(height: 16),
                     ],
                   ),
