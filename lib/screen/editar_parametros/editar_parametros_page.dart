@@ -44,7 +44,7 @@ class EditarParametrosPage extends StatefulWidget {
 
 class _EditarParametrosPageState extends State<EditarParametrosPage> {
   late final int _idLote;
-  late EditarParametrosRemote _remote = EditarParametrosRemote( DioClient(),);
+  late EditarParametrosRemote _remote = EditarParametrosRemote(DioClient());
   LoteModel? _lote;
   HistoricoFaseModel? _faseAtual;
   Ranges? _ranges;
@@ -274,7 +274,7 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
     final nomeSala = lote.nomeSala ?? '—';
 
     return Scaffold(
-      backgroundColor: Colors.green,
+      // backgroundColor: Colors.green,
       appBar: const CustomAppBar(title: 'Editar Parâmetros'),
       body: SingleChildScrollView(
         child: Padding(
@@ -597,13 +597,22 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                          : const Icon(Icons.save),
-                  label: Text(_saving ? 'Salvando...' : 'Salvar alterações'),
+                          : const Icon(
+                            Icons.save,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                  label: Text(
+                    _saving ? 'Salvando...' : 'Salvar alterações',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 76, 175, 80),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

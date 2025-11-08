@@ -97,7 +97,7 @@ class CriarLoteRemoteDataSource {
       }
     }
 
-    throw ApiException('Formato inesperado ao carregar salas disponíveis.');
+    throw ApiException('Nenhuma sala disponível para criação do lote');
   }
 
   List<T> _parseLista<T>(

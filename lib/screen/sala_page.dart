@@ -266,12 +266,12 @@ class _SalaPageState extends State<SalaPage> {
   Color _getHumidityColor(double humidity) {
     if (humidity < 30) return Colors.red;
     if (humidity < 60) return Colors.orange;
-    if (humidity < 80) return Colors.green;
+    if (humidity < 80) return Color.fromARGB(255, 76, 175, 80);
     return Colors.blue;
   }
 
   Color _getCO2Color(double co2) {
-    if (co2 < 400) return Colors.green;
+    if (co2 < 400) return Color.fromARGB(255, 76, 175, 80);
     if (co2 < 1000) return Colors.orange;
     return Colors.red;
   }
@@ -395,7 +395,7 @@ class _SalaPageState extends State<SalaPage> {
                           final isAtivo = _atuadoresStatus[idAtuador] ?? false;
                           final buttonColor =
                               isAtivo
-                                  ? const Color.fromARGB(255, 97, 247, 28)
+                                  ? const Color.fromARGB(255, 76, 175, 80)
                                   : secontaryColor;
 
                           IconData icon;
@@ -487,13 +487,24 @@ class _SalaPageState extends State<SalaPage> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: const Center(
-                                child: Text(
-                                  "Editar Sala",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Editar",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -508,13 +519,24 @@ class _SalaPageState extends State<SalaPage> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: const Center(
-                                child: Text(
-                                  "Finalizar",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Finalizar",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

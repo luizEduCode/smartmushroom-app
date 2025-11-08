@@ -245,17 +245,18 @@ class _CriarLotePageState extends State<CriarLotePage> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _criarLote,
-              icon: const Icon(Icons.save, color: Colors.white),
-              label: const Text(
-                'Criar Lote',
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _criarLote,
+                icon: const Icon(Icons.save, color: Colors.white, size: 20),
+                label: const Text(
+                  "Criar Lote",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: const Color.fromARGB(255, 76, 175, 80),
                 ),
               ),
             ),
@@ -279,7 +280,7 @@ class _CriarLotePageState extends State<CriarLotePage> {
     if (_erroSalas != null) {
       return Text(
         _erroSalas!,
-        style: const TextStyle(color: Colors.red),
+        style: const TextStyle(color: Colors.red, fontSize: 16),
         textAlign: TextAlign.center,
       );
     }
@@ -367,8 +368,12 @@ class _CriarLotePageState extends State<CriarLotePage> {
   Widget _buildFaseDropdown() {
     if (_selectedMushroom == null) {
       return const Text(
-        "Selecione primeiro um cogumelo",
-        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        "Primeiro selecione um cogumelo!",
+        style: TextStyle(
+          color: Colors.red,
+          fontStyle: FontStyle.italic,
+          fontSize: 16,
+        ),
         textAlign: TextAlign.center,
       );
     }
@@ -393,8 +398,12 @@ class _CriarLotePageState extends State<CriarLotePage> {
 
     if (_cultivationPhases.isEmpty) {
       return const Text(
-        'Nenhuma fase disponível para este cogumelo',
-        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        'Nenhuma fase disponível para este cogumelo escolha outro!',
+        style: TextStyle(
+          color: Colors.red,
+          fontStyle: FontStyle.italic,
+          fontSize: 16,
+        ),
         textAlign: TextAlign.center,
       );
     }

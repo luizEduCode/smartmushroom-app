@@ -40,29 +40,33 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                final ip = _ipController.text.trim();
-                final messenger = ScaffoldMessenger.of(context);
-                if (ip.isEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Informe um IP válido.')),
-                  );
-                  return;
-                }
-
-                _storage.write('server_ip', ip);
-                Navigator.of(context).pop(ip);
-              },
-              icon: const Icon(Icons.save, color: Colors.white),
-              label: const Text(
-                'Salvar IP',
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final ip = _ipController.text.trim();
+                  final messenger = ScaffoldMessenger.of(context);
+                  if (ip.isEmpty) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Informe um IP válido.')),
+                    );
+                    return;
+                  }
+                  _storage.write('server_ip', ip);
+                  Navigator.of(context).pop(ip);
+                },
+                icon: const Icon(Icons.save, color: Colors.white, size: 20),
+                label: const Text(
+                  "Salvar IP",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                  ),
                 ),
               ),
             ),
