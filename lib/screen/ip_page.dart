@@ -3,6 +3,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 class ConfigIPPage extends StatefulWidget {
+  const ConfigIPPage({super.key});
+
   @override
   State<ConfigIPPage> createState() => _ConfigIPPageState();
 }

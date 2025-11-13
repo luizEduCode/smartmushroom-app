@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
-import 'package:smartmushroom_app/models/Chart_Data_Model.dart';
+import 'package:smartmushroom_app/models/chart_data_model.dart';
 
 class TemperatureLinechart extends StatefulWidget {
   final String idLote;

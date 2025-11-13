@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
+import 'package:smartmushroom_app/features/sala/presentation/viewmodels/sala_view_model.dart';
 import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
@@ -12,11 +12,7 @@ import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
 import 'package:smartmushroom_app/screen/editar_parametros/editar_parametros_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
-import 'package:smartmushroom_app/models/Controle_Atuador_Model.dart';
-import 'package:smartmushroom_app/models/Lote_Model.dart';
-import 'package:smartmushroom_app/models/Leitura_Model.dart';
-
-class SalaPage extends StatefulWidget {
+class SalaPage extends StatelessWidget {
   final String nomeSala;
   final String idLote;
   final String? idSala;
@@ -29,561 +25,413 @@ class SalaPage extends StatefulWidget {
   });
 
   @override
-  State<SalaPage> createState() => _SalaPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create:
+          (_) => SalaViewModel(
+            dataSource: SalaRemoteDataSource(DioClient()),
+            idLote: idLote,
+            nomeSala: nomeSala,
+          )..initialize(),
+      child: _SalaView(
+        fallbackNomeSala: nomeSala,
+        idLote: idLote,
+      ),
+    );
+  }
 }
 
-class _SalaPageState extends State<SalaPage> {
-  late Timer _timer;
-  late final SalaRemoteDataSource _dataSource;
+class _SalaView extends StatefulWidget {
+  const _SalaView({
+    required this.fallbackNomeSala,
+    required this.idLote,
+  });
 
-  bool _isLoading = true;
-  bool _hasFetchError = false;
-  bool _loadingAtuadores = false;
-
-  LoteModel? _lote; // dados fixos do lote
-  LeituraModel? _leitura; // última leitura (tempo real)
-  final Map<int, bool> _atuadoresStatus = {}; // 1..4
-
-  int? _idCogumelo;
-  int?
-  _idFaseCultivo; // manter para compat com EditarParametrosPage (0 se null)
+  final String fallbackNomeSala;
+  final String idLote;
 
   @override
-  void initState() {
-    super.initState();
-    _dataSource = SalaRemoteDataSource(DioClient());
-    _carregarTudo(); // primeira carga
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _buscarUltimaLeitura(); // somente o que muda
-      _carregarStatusAtuadores(); // status dos botões
-    });
-  }
+  State<_SalaView> createState() => _SalaViewState();
+}
 
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  // ---------- Orquestração ----------
-  Future<void> _carregarTudo() async {
-    setState(() {
-      _isLoading = true;
-      _hasFetchError = false;
-    });
-    try {
-      await _buscarDadosLote(); // fixa cabeçalho
-      await _buscarUltimaLeitura(); // dinâmica
-      await _carregarStatusAtuadores(); // botões
-      if (mounted) setState(() => _isLoading = false);
-    } catch (_) {
-      if (mounted)
-        setState(() {
-          _hasFetchError = true;
-          _isLoading = false;
-        });
-    }
-  }
-
-  // ---------- Lote ----------
-  Future<void> _buscarDadosLote() async {
-    final lote = await _dataSource.fetchLote(widget.idLote);
-    if (!mounted) return;
-    setState(() {
-      _lote = lote;
-      _idCogumelo = lote.idCogumelo;
-      // _idFaseCultivo permanece null (0 na navegação) até existir na API
-    });
-  }
-
-  // ---------- Leitura (tempo real) ----------
-  Future<void> _buscarUltimaLeitura() async {
-    final leitura = await _dataSource.fetchUltimaLeitura(widget.idLote);
-    if (!mounted) return;
-    setState(() {
-      _leitura = leitura;
-    });
-  }
-
-  Future<void> _carregarStatusAtuadores() async {
-    try {
-      final registros = await _dataSource.fetchControleAtuadores(widget.idLote);
-
-      final Map<int, ControleAtuadorModel> maisRecentePorAtuador = {};
-
-      for (final registro in registros) {
-        final id = registro.idAtuador;
-        final atual = maisRecentePorAtuador[id];
-        if (atual == null) {
-          maisRecentePorAtuador[id] = registro;
-        } else {
-          final dtNovo = _parseDateTime(registro.dataCriacao);
-          final dtAtual = _parseDateTime(atual.dataCriacao);
-          if (dtNovo.isAfter(dtAtual)) {
-            maisRecentePorAtuador[id] = registro;
-          }
-        }
-      }
-
-      final Map<int, bool> novosStatus = {};
-      maisRecentePorAtuador.forEach((id, m) {
-        final ativo = (m.statusAtuador).toLowerCase() == 'ativo';
-        novosStatus[id] = ativo;
-      });
-
-      if (mounted) {
-        setState(() {
-          _atuadoresStatus
-            ..clear()
-            ..addAll(novosStatus);
-        });
-      }
-    } catch (e) {
-      debugPrint('Erro _carregarStatusAtuadores: $e');
-    }
-  }
-
-  DateTime _parseDateTime(String? s) {
-    // Esperado: "YYYY-MM-DD HH:MM:SS"
-    if (s == null || s.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
-    try {
-      return DateTime.parse(s.replaceFirst(' ', 'T')); // torna ISO-like
-    } catch (_) {
-      return DateTime.fromMillisecondsSinceEpoch(0);
-    }
-  }
-
-  // ---------- Alterar status atuador ----------
-  Future<void> _alterarStatusAtuador(int idAtuador) async {
-    if (_loadingAtuadores) return;
-    final atual = _atuadoresStatus[idAtuador] ?? false;
-    final novo = !atual;
-
-    setState(() {
-      _loadingAtuadores = true;
-      _atuadoresStatus[idAtuador] = novo; // otimista
-    });
-
-    try {
-      await _dataSource.alterarStatusAtuador(
-        idAtuador: idAtuador,
-        idLote: widget.idLote,
-        ativo: novo,
-      );
-      await _carregarStatusAtuadores();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Status alterado com sucesso!')),
-        );
-      }
-    } on ApiException catch (e) {
-      setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } catch (e) {
-      setState(() => _atuadoresStatus[idAtuador] = atual); // rollback
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _loadingAtuadores = false);
-    }
-  }
-
-  // ---------- Finalizar / Excluir ----------
-  Future<void> _finalizarLote() async {
-    try {
-      final message = await _dataSource.finalizarLote(widget.idLote);
-      if (mounted) {
-        if (message == 'Lote finalizado com sucesso') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lote finalizado com sucesso!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                message.isNotEmpty ? message : 'Erro ao finalizar lote!',
-              ),
-            ),
-          );
-        }
-      }
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: ${e.message}')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
-      }
-    }
-  }
-
-  Future<void> _excluirLote() async {
-    try {
-      final message = await _dataSource.excluirLote(widget.idLote);
-      if (mounted) {
-        if (message == 'Lote excluido com sucesso') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lote excluido com sucesso!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                message.isNotEmpty ? message : 'Erro ao excluir lote!',
-              ),
-            ),
-          );
-        }
-      }
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: ${e.message}')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
-      }
-    }
-  }
-
-  // ---------- Helpers de cor ----------
-  Color _getHumidityColor(double humidity) {
-    if (humidity < 30) return Colors.red;
-    if (humidity < 60) return Colors.orange;
-    if (humidity < 80) return Color.fromARGB(255, 76, 175, 80);
-    return Colors.blue;
-  }
-
-  Color _getCO2Color(double co2) {
-    if (co2 < 400) return Color.fromARGB(255, 76, 175, 80);
-    if (co2 < 1000) return Colors.orange;
-    return Colors.red;
-  }
-
-  // ---------- UI ----------
+class _SalaViewState extends State<_SalaView> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromRGBO(234, 234, 234, 1),
-      appBar: CustomAppBar(title: _lote?.nomeSala ?? widget.nomeSala),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _hasFetchError
-              ? const Center(child: Text('Erro ao carregar dados.'))
-              : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(defaultPadding),
+    return Consumer<SalaViewModel>(
+      builder: (context, viewModel, _) {
+        final nomeSala = viewModel.lote?.nomeSala ?? widget.fallbackNomeSala;
+
+        return Scaffold(
+          appBar: CustomAppBar(title: nomeSala),
+          body: _buildBody(context, viewModel),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, SalaViewModel viewModel) {
+    if (viewModel.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (viewModel.hasError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(defaultPadding),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Não foi possível carregar os dados da sala.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: defaultPadding),
+              FilledButton.icon(
+                onPressed: viewModel.loadAll,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final leitura = viewModel.leitura;
+    final lote = viewModel.lote;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          clipBehavior: Clip.none,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(defaultPadding),
+              child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: RingChart(
+                    temperatura: leitura?.temperatura ?? '--',
+                    valor: leitura?.temperaturaNum ?? 0.0,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Topo — RingChart + infos
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RingChart(
-                              temperatura: _leitura?.temperatura ?? '--',
-                              valor: _leitura?.temperaturaNum ?? 0.0,
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildInfoItem('Cogumelo', _lote?.nomeCogumelo),
-                                const SizedBox(height: defaultPadding / 2),
-                                _buildInfoItem(
-                                  'Data Início',
-                                  _lote?.dataInicio,
-                                ),
-                                const SizedBox(height: defaultPadding / 2),
-                                _buildInfoItem('Lote', _lote?.idLote),
-                                const SizedBox(height: defaultPadding / 2),
-                                _buildInfoItem(
-                                  'Sala',
-                                  _lote?.nomeSala ?? widget.nomeSala,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      _buildInfoItem('Cogumelo', lote?.nomeCogumelo),
+                      const SizedBox(height: defaultPadding / 2),
+                      _buildInfoItem('Data Início', lote?.dataInicio),
+                      const SizedBox(height: defaultPadding / 2),
+                      _buildInfoItem('Lote', lote?.idLote),
+                      const SizedBox(height: defaultPadding / 2),
+                      _buildInfoItem(
+                        'Sala',
+                        lote?.nomeSala ?? widget.fallbackNomeSala,
                       ),
-                      const SizedBox(height: 20),
-
-                      // Indicadores — Umidade e CO2
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Umidade',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                LinearProgressIndicator(
-                                  value: ((_leitura?.umidadeNum ?? 0.0) / 100)
-                                      .clamp(0, 1),
-                                  backgroundColor: Colors.grey[500],
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getHumidityColor(
-                                      _leitura?.umidadeNum ?? 0.0,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text('${_leitura?.umidade ?? '--'}%'),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Nível CO²',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                LinearProgressIndicator(
-                                  value: ((_leitura?.co2Num ?? 0.0) / 5000)
-                                      .clamp(0, 1),
-                                  backgroundColor: Colors.grey[500],
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getCO2Color(_leitura?.co2Num ?? 0.0),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text('${_leitura?.co2 ?? '--'}ppm'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Botões de atuadores
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: List.generate(4, (index) {
-                          final idAtuador = index + 1;
-                          final isAtivo = _atuadoresStatus[idAtuador] ?? false;
-                          final buttonColor =
-                              isAtivo
-                                  ? const Color.fromARGB(255, 76, 175, 80)
-                                  : secontaryColor;
-
-                          IconData icon;
-                          String label;
-                          switch (idAtuador) {
-                            case 1: // umidificador (umidade)
-                              icon = Icons.water_drop;
-                              label = 'Umidade';
-                              break;
-                            case 2: // aquecedor (temperatura)
-                              icon =
-                                  Icons.ac_unit; // ou Icons.thermostat_outlined
-                              label = 'Temperatura';
-                              break;
-                            case 3: // exaustor (CO2)
-                              icon = Icons.air;
-                              label = 'Ventilação';
-                              break;
-                            case 4: // luz
-                              icon = Icons.light_mode;
-                              label = 'Iluminação';
-                              break;
-                            default:
-                              icon = Icons.device_hub;
-                              label = 'Atuador';
-                          }
-
-                          return Column(
-                            children: [
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: buttonColor,
-                                  shape: const CircleBorder(),
-                                  padding: const EdgeInsets.all(20),
-                                ),
-                                onPressed:
-                                    _loadingAtuadores
-                                        ? null
-                                        : () =>
-                                            _alterarStatusAtuador(idAtuador),
-                                child:
-                                    _loadingAtuadores
-                                        ? const SizedBox(
-                                          height: 22,
-                                          width: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 3,
-                                            valueColor: AlwaysStoppedAnimation(
-                                              Colors.white,
-                                            ),
-                                          ),
-                                        )
-                                        : Icon(
-                                          icon,
-                                          color: Colors.white,
-                                          size: 25,
-                                        ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(label, style: const TextStyle(fontSize: 11)),
-                            ],
-                          );
-                        }),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Ações
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => EditarParametrosPage(
-                                        idLote: int.parse(widget.idLote),
-                                      ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              height: 45,
-                              width: MediaQuery.of(context).size.width * 0.35,
-                              decoration: BoxDecoration(
-                                color: secontaryColor,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: const Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.edit,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "Editar",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          InkWell(
-                            onTap: modalFinalizaLote,
-                            child: Container(
-                              height: 45,
-                              width: MediaQuery.of(context).size.width * 0.35,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: const Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "Finalizar",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          InkWell(
-                            onTap: modalExcluirLote,
-                            child: Container(
-                              height: 45,
-                              width: MediaQuery.of(context).size.width * 0.15,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.delete,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Gráficos (fl_chart)
-                      _buildChartSection(
-                        'Temperatura',
-                        TemperatureLinechart(idLote: widget.idLote),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildChartSection(
-                        'Umidade',
-                        HumidityLinechart(idLote: widget.idLote),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildChartSection(
-                        'Co²',
-                        Co2Linechart(idLote: widget.idLote),
-                      ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Umidade',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: viewModel.humidityValue,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getHumidityColor(leitura?.umidadeNum ?? 0),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text('${leitura?.umidade ?? '--'}%'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Nível CO²',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: viewModel.co2Value,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getCO2Color(leitura?.co2Num ?? 0),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text('${leitura?.co2 ?? '--'}ppm'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(4, (index) {
+                final idAtuador = index + 1;
+                final isAtivo = viewModel.atuadoresStatus[idAtuador] ?? false;
+                final buttonColor = isAtivo
+                    ? Theme.of(context).colorScheme.tertiary
+                    : Theme.of(context).colorScheme.secondary;
+                final iconData = _getAtuadorIcon(idAtuador);
+                final label = _getAtuadorLabel(idAtuador);
+
+                return Column(
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: buttonColor,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(20),
+                      ),
+                      onPressed:
+                          viewModel.isAtuadorLoading
+                              ? null
+                              : () => _handleToggleAtuador(
+                                context,
+                                idAtuador,
+                              ),
+                      child:
+                          viewModel.isAtuadorLoading
+                              ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor:
+                                      AlwaysStoppedAnimation(Colors.white),
+                                ),
+                              )
+                              : Icon(iconData, color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(label, style: const TextStyle(fontSize: 12)),
+                  ],
+                );
+              }),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => EditarParametrosPage(
+                                idLote: int.tryParse(widget.idLote) ?? 0,
+                              ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Editar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                    ),
+                    onPressed: () => _showFinalizeDialog(context),
+                    icon: const Icon(Icons.flag),
+                    label: const Text('Finalizar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                    onPressed: () => _showExcluirDialog(context),
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Excluir'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildChartSection(
+              context,
+              'Temperatura',
+              TemperatureLinechart(idLote: widget.idLote),
+            ),
+            const SizedBox(height: 20),
+            _buildChartSection(
+              context,
+              'Umidade',
+              HumidityLinechart(idLote: widget.idLote),
+            ),
+            const SizedBox(height: 20),
+            _buildChartSection(
+              context,
+              'Co²',
+              Co2Linechart(idLote: widget.idLote),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleToggleAtuador(
+    BuildContext context,
+    int idAtuador,
+  ) async {
+    final viewModel = context.read<SalaViewModel>();
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    try {
+      await viewModel.alterarStatusAtuador(idAtuador);
+      if (!mounted) return;
+      _showSnack(messenger, theme, 'Status alterado com sucesso!');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showSnack(messenger, theme, e.message, isError: true);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(messenger, theme, 'Erro: $e', isError: true);
+    }
+  }
+
+  Future<void> _showFinalizeDialog(BuildContext context) async {
+    final theme = Theme.of(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final viewModel = context.read<SalaViewModel>();
+
+    final confirmed = await _showConfirmationDialog(
+      context,
+      title: 'Deseja finalizar o Lote?',
+      description:
+          'Essa é uma ação que não poderá ser revertida e os dados serão mantidos apenas para consulta.',
+      confirmLabel: 'Finalizar',
+      confirmColor: theme.colorScheme.error,
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final message = await viewModel.finalizarLote();
+      if (!mounted) return;
+      _showSnack(
+        messenger,
+        theme,
+        message.isEmpty ? 'Lote finalizado com sucesso!' : message,
+      );
+      navigator.pop();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showSnack(messenger, theme, e.message, isError: true);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(messenger, theme, 'Erro: $e', isError: true);
+    }
+  }
+
+  Future<void> _showExcluirDialog(BuildContext context) async {
+    final theme = Theme.of(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final viewModel = context.read<SalaViewModel>();
+
+    final confirmed = await _showConfirmationDialog(
+      context,
+      title: 'Deseja excluir o Lote?',
+      description:
+          'Essa ação removerá definitivamente todos os dados relacionados ao lote.',
+      confirmLabel: 'Excluir',
+      confirmColor: theme.colorScheme.error,
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final message = await viewModel.excluirLote();
+      if (!mounted) return;
+      _showSnack(
+        messenger,
+        theme,
+        message.isEmpty ? 'Lote excluído com sucesso!' : message,
+      );
+      navigator.pop();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showSnack(messenger, theme, e.message, isError: true);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(messenger, theme, 'Erro: $e', isError: true);
+    }
+  }
+
+  Future<bool?> _showConfirmationDialog(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required String confirmLabel,
+    required Color confirmColor,
+  }) {
+    return showDialog<bool>(
+      barrierDismissible: false,
+      barrierColor: Colors.black.withAlpha(120),
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(description),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: confirmColor),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -595,19 +443,25 @@ class _SalaPageState extends State<SalaPage> {
           label,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 1),
-        Text(value?.toString() ?? '--', style: const TextStyle(fontSize: 17)),
+        const SizedBox(height: 2),
+        Text(value?.toString() ?? '--', style: const TextStyle(fontSize: 16)),
       ],
     );
   }
 
-  Widget _buildChartSection(String title, Widget chart) {
+  Widget _buildChartSection(
+    BuildContext context,
+    String title,
+    Widget chart,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 12),
         chart,
@@ -615,87 +469,61 @@ class _SalaPageState extends State<SalaPage> {
     );
   }
 
-  void modalFinalizaLote() {
-    showDialog(
-      barrierDismissible: false,
-      barrierColor: Colors.black.withAlpha(100),
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: primaryColor,
-          title: const Text(
-            'Deseja finalizar o Lote?',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          content: const Text(
-            'Essa é uma ação que não poderá ser revertida, e todos os dados do lote permanecerão registrados.',
-            style: TextStyle(fontSize: 17, color: Colors.white),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _finalizarLote();
-                if (mounted) Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text(
-                'Finalizar',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
+  void _showSnack(
+    ScaffoldMessengerState messenger,
+    ThemeData theme,
+    String message, {
+    bool isError = false,
+  }) {
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor:
+            isError ? theme.colorScheme.error : theme.colorScheme.primary,
+        content: Text(message),
+      ),
     );
   }
 
-  void modalExcluirLote() {
-    showDialog(
-      barrierDismissible: false,
-      barrierColor: Colors.black.withAlpha(100),
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: primaryColor,
-          title: const Text(
-            'Deseja excluir o Lote?',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          content: const Text(
-            'Essa é uma ação que não poderá ser revertida, ao excluir o lote, todos os dados relacionados a ele serão apagados!',
-            style: TextStyle(fontSize: 17, color: Colors.white),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _excluirLote();
-                if (mounted) Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text(
-                'Excluir',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  static Color _getHumidityColor(double humidity) {
+    if (humidity < 30) return Colors.red;
+    if (humidity < 60) return Colors.orange;
+    if (humidity < 80) return const Color(0xFF4CAF50);
+    return Colors.blue;
+  }
+
+  static Color _getCO2Color(double co2) {
+    if (co2 < 400) return const Color(0xFF4CAF50);
+    if (co2 < 1000) return Colors.orange;
+    return Colors.red;
+  }
+
+  static IconData _getAtuadorIcon(int idAtuador) {
+    switch (idAtuador) {
+      case 1:
+        return Icons.water_drop;
+      case 2:
+        return Icons.thermostat_outlined;
+      case 3:
+        return Icons.air;
+      case 4:
+        return Icons.light_mode;
+      default:
+        return Icons.smart_button;
+    }
+  }
+
+  static String _getAtuadorLabel(int idAtuador) {
+    switch (idAtuador) {
+      case 1:
+        return 'Umidade';
+      case 2:
+        return 'Temperatura';
+      case 3:
+        return 'Ventilação';
+      case 4:
+        return 'Iluminação';
+      default:
+        return 'Atuador';
+    }
   }
 }

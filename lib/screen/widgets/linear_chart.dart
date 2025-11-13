@@ -54,13 +54,13 @@ class LinearBarChartWidget extends StatelessWidget {
   final double height;
 
   const LinearBarChartWidget({
-    Key? key,
+    super.key,
     required this.percentage,
     this.barHeight = 20.0,
     this.color = Colors.blue,
     this.width = 200.0,
     this.height = 100.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

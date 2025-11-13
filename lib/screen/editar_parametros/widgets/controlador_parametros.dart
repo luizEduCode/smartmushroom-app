@@ -32,37 +32,38 @@ class ParamVisualTheme {
   });
 }
 
-ParamVisualTheme themeFor(ParamLevel level) {
+ParamVisualTheme themeFor(ThemeData theme, ParamLevel level) {
+  final scheme = theme.colorScheme;
   switch (level) {
     case ParamLevel.low:
       return ParamVisualTheme(
-        cardBg: const Color(0xFFEFF7FF),
-        accent: const Color(0xFF1D4ED8),
-        chipBorder: const Color(0xFFBFDBFE),
+        cardBg: scheme.primaryContainer.withValues(alpha: 0.4),
+        accent: scheme.primary,
+        chipBorder: scheme.primaryContainer,
         chipLabel: 'Baixo',
         chipIcon: Icons.south_east,
-        trackBase: const Color(0xFFE5E7EB),
-        trackLeft: Colors.black87,
+        trackBase: scheme.surfaceContainerHighest,
+        trackLeft: scheme.onSurface.withValues(alpha: 0.6),
       );
     case ParamLevel.high:
       return ParamVisualTheme(
-        cardBg: const Color(0xFFFFF2E5),
-        accent: const Color(0xFFEA580C),
-        chipBorder: const Color(0xFFFECBA1),
+        cardBg: scheme.errorContainer.withValues(alpha: 0.4),
+        accent: scheme.error,
+        chipBorder: scheme.errorContainer,
         chipLabel: 'Alto',
         chipIcon: Icons.trending_up,
-        trackBase: const Color(0xFFE5E7EB),
-        trackLeft: Colors.black87,
+        trackBase: scheme.surfaceContainerHighest,
+        trackLeft: scheme.onSurface.withValues(alpha: 0.6),
       );
     case ParamLevel.ideal:
-    return ParamVisualTheme(
-        cardBg: const Color(0xFFEFFAF1),
-        accent: const Color(0xFF22C55E),
-        chipBorder: const Color(0xFFD1FAE5),
+      return ParamVisualTheme(
+        cardBg: scheme.tertiaryContainer.withValues(alpha: 0.4),
+        accent: scheme.tertiary,
+        chipBorder: scheme.tertiaryContainer,
         chipLabel: 'Ideal',
         chipIcon: Icons.check,
-        trackBase: const Color(0xFFE5E7EB),
-        trackLeft: Colors.black87,
+        trackBase: scheme.surfaceContainerHighest,
+        trackLeft: scheme.onSurface.withValues(alpha: 0.6),
       );
   }
 }
@@ -99,7 +100,9 @@ class ControladorParametros extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = const Color(0xFF1F2937);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textColor = scheme.onSurface;
 
     final level = evalParamLevel(
       value: value,
@@ -107,7 +110,7 @@ class ControladorParametros extends StatelessWidget {
       idealMax: idealMax,
     );
 
-    final t = themeFor(level);
+    final t = themeFor(theme, level);
 
     return Card(
       elevation: 0,
@@ -121,7 +124,7 @@ class ControladorParametros extends StatelessWidget {
             Row(
               children: [
                 _SquareIcon(
-                  color: Colors.white,
+                  color: scheme.surface,
                   child: Icon(iconData, color: t.accent),
                 ),
                 const SizedBox(width: 12),
@@ -132,7 +135,7 @@ class ControladorParametros extends StatelessWidget {
                       Text(
                         label,
                         style: TextStyle(
-                          color: dark,
+                          color: textColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -140,7 +143,7 @@ class ControladorParametros extends StatelessWidget {
                       Text(
                         'Ideal: ${idealMin.toStringAsFixed(0)}–${idealMax.toStringAsFixed(0)} $unit',
                         style: TextStyle(
-                          color: dark.withValues(alpha:0.6),
+                          color: textColor.withValues(alpha: 0.6),
                           fontSize: 12,
                         ),
                       ),
@@ -166,7 +169,7 @@ class ControladorParametros extends StatelessWidget {
                 Text(
                   unit,
                   style: TextStyle(
-                    color: dark.withValues(alpha:0.8),
+                    color: textColor.withValues(alpha: 0.8),
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -236,9 +239,11 @@ class _AutoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final green = const Color(0xFF22C55E);
+    final scheme = Theme.of(context).colorScheme;
+    final accent = scheme.tertiary;
+    final foreground = scheme.onSurface;
     return Material(
-      color: Colors.white,
+      color: scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -247,12 +252,16 @@ class _AutoButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
-              Icon(Icons.bolt, size: 16, color: active ? green : Colors.black54),
+              Icon(
+                Icons.bolt,
+                size: 16,
+                color: active ? accent : foreground.withValues(alpha: 0.6),
+              ),
               const SizedBox(width: 4),
               Text(
                 'Auto',
                 style: TextStyle(
-                  color: active ? green : Colors.black87,
+                  color: active ? accent : foreground,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -279,15 +288,16 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: borderColor, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -398,12 +408,20 @@ class _TinyTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: scheme.onSurface,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

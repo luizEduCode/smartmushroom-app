@@ -28,6 +28,11 @@ class SalahomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color backgroundColor =
+        status == 'finalizado'
+            ? Colors.grey
+            : Theme.of(context).colorScheme.primary;
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -41,8 +46,8 @@ class SalahomeCard extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 7),
         child: Container(
           decoration: BoxDecoration(
-            color: status == 'finalizado' ? Colors.grey : primaryColor,
-            borderRadius: BorderRadius.all(Radius.circular(20)),
+            color: backgroundColor,
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(defaultPadding),

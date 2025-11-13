@@ -17,9 +17,11 @@ class RingChart extends StatelessWidget {
     // Calcular a porcentagem baseada em uma faixa razoável de temperatura (ex: 0-50°C)
     double porcentagem = (valor.clamp(0, 50) / 50); // Limita entre 0% e 100%
 
+    final theme = Theme.of(context);
+
     return Card(
-      color: primaryColor,
-      surfaceTintColor: primaryColor,
+      color: theme.colorScheme.primary,
+      surfaceTintColor: theme.colorScheme.primary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(defaultPadding),

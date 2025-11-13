@@ -6,9 +6,10 @@ class OnebarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      color: primaryColor,
-      surfaceTintColor: primaryColor,
+      color: theme.colorScheme.primary,
+      surfaceTintColor: theme.colorScheme.primary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(defaultPadding),

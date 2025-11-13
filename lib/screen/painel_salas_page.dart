@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/painel_salas/data/painel_salas_remote_datasource.dart';
 import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
-import 'package:smartmushroom_app/screen/criarLote_page.dart';
+import 'package:smartmushroom_app/screen/criar_lote_page.dart';
 
 class PainelSalasPage extends StatefulWidget {
   const PainelSalasPage({super.key});
@@ -151,7 +150,7 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: secontaryColor,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         onPressed: () {
           Navigator.push(
             context,

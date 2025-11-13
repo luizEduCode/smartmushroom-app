@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 
-import 'package:smartmushroom_app/models/Historico_Fase_Model.dart';
-import 'package:smartmushroom_app/models/Lote_Model.dart';
-import 'package:smartmushroom_app/models/Parametro_Model.dart';
-import 'package:smartmushroom_app/models/Fase_Cultivo_Model.dart';
+import 'package:smartmushroom_app/models/historico_fase_model.dart';
+import 'package:smartmushroom_app/models/lote_model.dart';
+import 'package:smartmushroom_app/models/parametro_model.dart';
+import 'package:smartmushroom_app/models/fase_cultivo_model.dart';
 
 import 'package:smartmushroom_app/screen/editar_parametros/data/editar_parametros_remote.dart';
 import 'package:smartmushroom_app/screen/editar_parametros/presentation/widgets/parametro_card_container.dart';
@@ -239,9 +239,19 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        appBar: CustomAppBar(title: 'Editar Parâmetros'),
-        body: Center(child: CircularProgressIndicator()),
+      final scheme = Theme.of(context).colorScheme;
+      return Scaffold(
+        appBar: const CustomAppBar(title: 'Editar Parâmetros'),
+        body: Center(
+          child: SizedBox(
+            height: 42,
+            width: 42,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation(scheme.primary),
+            ),
+          ),
+        ),
       );
     }
 
@@ -256,9 +266,10 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
               children: [
                 Text(_error!, textAlign: TextAlign.center),
                 const SizedBox(height: 12),
-                ElevatedButton(
+                FilledButton.icon(
                   onPressed: _carregar,
-                  child: const Text('Tentar novamente'),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Tentar novamente'),
                 ),
               ],
             ),
@@ -273,348 +284,325 @@ class _EditarParametrosPageState extends State<EditarParametrosPage> {
     final nomeCogumelo = lote.nomeCogumelo ?? '—';
     final nomeSala = lote.nomeSala ?? '—';
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
-      // backgroundColor: Colors.green,
       appBar: const CustomAppBar(title: 'Editar Parâmetros'),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // ===== Cabeçalho do lote =====
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildHeaderCard(
+              scheme: scheme,
+              textTheme: textTheme,
+              lote: lote,
+              nomeCogumelo: nomeCogumelo,
+              nomeSala: nomeSala,
+              dataInicio: dataInicioBr,
+              dias: dias,
+            ),
+            const SizedBox(height: 16),
+            _buildProgressCard(
+              scheme: scheme,
+              textTheme: textTheme,
+              lote: lote,
+            ),
+            const SizedBox(height: 16),
+            if (_ranges != null) ...[
+              ParametroCardContainer(
+                idLote: '$_idLote',
+                tipo: ParametroTipo.temperatura,
+                autoMode: _autoTemp,
+                onToggleAuto: () {
+                  setState(() {
+                    _autoTemp = !_autoTemp;
+                    if (_autoTemp) {
+                      _tempCtrl.value = _ranges!.mediaTemp;
+                      _spTemp = null;
+                    }
+                  });
+                },
+                idealMinOverride: _ranges!.tMin,
+                idealMaxOverride: _ranges!.tMax,
+                initialValueOverride: _ranges!.mediaTemp,
+                valueController: _tempCtrl,
+                onUserChanged: (v) {
+                  if (_autoTemp) setState(() => _autoTemp = false);
+                  _spTemp = v;
+                },
+              ),
+              const SizedBox(height: 16),
+              ParametroCardContainer(
+                idLote: '$_idLote',
+                tipo: ParametroTipo.umidade,
+                autoMode: _autoUmid,
+                onToggleAuto: () {
+                  setState(() {
+                    _autoUmid = !_autoUmid;
+                    if (_autoUmid) {
+                      _umidCtrl.value = _ranges!.mediaUmid;
+                      _spUmid = null;
+                    }
+                  });
+                },
+                idealMinOverride: _ranges!.uMin,
+                idealMaxOverride: _ranges!.uMax,
+                initialValueOverride: _ranges!.mediaUmid,
+                valueController: _umidCtrl,
+                onUserChanged: (v) {
+                  if (_autoUmid) setState(() => _autoUmid = false);
+                  _spUmid = v;
+                },
+              ),
+              const SizedBox(height: 16),
+              ParametroCardContainer(
+                idLote: '$_idLote',
+                tipo: ParametroTipo.co2,
+                autoMode: _autoCo2,
+                onToggleAuto: () {
+                  setState(() {
+                    _autoCo2 = !_autoCo2;
+                    if (_autoCo2) {
+                      _co2Ctrl.value = _ranges!.mediaCo2;
+                      _spCo2 = null;
+                    }
+                  });
+                },
+                idealMinOverride: 0,
+                idealMaxOverride: _ranges!.co2Max,
+                initialValueOverride: _ranges!.mediaCo2,
+                valueController: _co2Ctrl,
+                onUserChanged: (v) {
+                  if (_autoCo2) setState(() => _autoCo2 = false);
+                  _spCo2 = v;
+                },
+              ),
+            ],
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _salvar,
+                icon:
+                    _saving
+                        ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(
+                              scheme.onPrimary,
+                            ),
+                          ),
+                        )
+                        : const Icon(Icons.save),
+                label: Text(
+                  _saving ? 'Salvando...' : 'Salvar alterações',
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Lote: ${lote.idLote ?? '--'}',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.shade100,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.spa,
-                                      size: 16,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '$nomeCogumelo • $nomeSala',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.access_time,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$dias',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                'dias',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard({
+    required ColorScheme scheme,
+    required TextTheme textTheme,
+    required LoteModel lote,
+    required String nomeCogumelo,
+    required String nomeSala,
+    required String dataInicio,
+    required int dias,
+  }) {
+    final titleStyle = textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: scheme.primary,
+    );
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lote: ${lote.idLote ?? '--'}',
+                        style: titleStyle,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
+                      const SizedBox(height: 4),
+                      Row(
                         children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            color: Colors.blue,
-                            size: 20,
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              Icons.spa,
+                              size: 16,
+                              color: scheme.primary,
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Data de Início',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '$nomeCogumelo • $nomeSala',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
                               ),
-                              Text(
-                                dataInicioBr,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ===== Progresso / Fase =====
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Icon(
-                            Icons.settings,
-                            size: 24,
-                            color: Colors.black54,
-                          ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        color: scheme.onPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$dias',
+                        style: textTheme.titleLarge?.copyWith(
+                          color: scheme.onPrimary,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Progresso do Cultivo',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black,
-                            ),
-                          ),
+                      ),
+                      Text(
+                        'dias',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onPrimary,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownFasesCultivo(
-                      idCogumelo: lote.idCogumelo ?? 0,
-                      idFaseSelecionada: _faseSelecionadaId,
-                      onChanged: (FaseCultivoModel? novaFase) {
-                        if (novaFase == null || _ranges == null) return;
-                        setState(() {
-                          _faseSelecionadaId = novaFase.idFaseCultivo;
-
-                          _ranges = Ranges(
-                            tMin: _toDouble(
-                              novaFase.temperaturaMin,
-                              _ranges!.tMin,
-                            ),
-                            tMax: _toDouble(
-                              novaFase.temperaturaMax,
-                              _ranges!.tMax,
-                            ),
-                            uMin: _toDouble(novaFase.umidadeMin, _ranges!.uMin),
-                            uMax: _toDouble(novaFase.umidadeMax, _ranges!.uMax),
-                            co2Max: _toDouble(novaFase.co2Max, _ranges!.co2Max),
-                          );
-
-                          // Ativa AUTO e volta sliders para as novas médias
-                          _autoTemp = _autoUmid = _autoCo2 = true;
-                          _tempCtrl.value = _ranges!.mediaTemp;
-                          _umidCtrl.value = _ranges!.mediaUmid;
-                          _co2Ctrl.value = _ranges!.mediaCo2;
-
-                          _spTemp = _spUmid = _spCo2 = null;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ===== Parâmetros =====
-              if (_ranges != null) ...[
-                // Temperatura
-                ParametroCardContainer(
-                  idLote: '$_idLote',
-                  tipo: ParametroTipo.temperatura,
-                  autoMode: _autoTemp,
-                  onToggleAuto: () {
-                    setState(() {
-                      _autoTemp = !_autoTemp;
-                      if (_autoTemp) {
-                        _tempCtrl.value = _ranges!.mediaTemp; // volta à média
-                        _spTemp = null;
-                      }
-                    });
-                  },
-                  idealMinOverride: _ranges!.tMin,
-                  idealMaxOverride: _ranges!.tMax,
-                  initialValueOverride: _ranges!.mediaTemp,
-                  valueController: _tempCtrl,
-                  onUserChanged: (v) {
-                    if (_autoTemp) setState(() => _autoTemp = false);
-                    _spTemp = v;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Umidade
-                ParametroCardContainer(
-                  idLote: '$_idLote',
-                  tipo: ParametroTipo.umidade,
-                  autoMode: _autoUmid,
-                  onToggleAuto: () {
-                    setState(() {
-                      _autoUmid = !_autoUmid;
-                      if (_autoUmid) {
-                        _umidCtrl.value = _ranges!.mediaUmid;
-                        _spUmid = null;
-                      }
-                    });
-                  },
-                  idealMinOverride: _ranges!.uMin,
-                  idealMaxOverride: _ranges!.uMax,
-                  initialValueOverride: _ranges!.mediaUmid,
-                  valueController: _umidCtrl,
-                  onUserChanged: (v) {
-                    if (_autoUmid) setState(() => _autoUmid = false);
-                    _spUmid = v;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // CO₂
-                ParametroCardContainer(
-                  idLote: '$_idLote',
-                  tipo: ParametroTipo.co2,
-                  autoMode: _autoCo2,
-                  onToggleAuto: () {
-                    setState(() {
-                      _autoCo2 = !_autoCo2;
-                      if (_autoCo2) {
-                        _co2Ctrl.value = _ranges!.mediaCo2;
-                        _spCo2 = null;
-                      }
-                    });
-                  },
-                  idealMinOverride: 0,
-                  idealMaxOverride: _ranges!.co2Max,
-                  initialValueOverride: _ranges!.mediaCo2,
-                  valueController: _co2Ctrl,
-                  onUserChanged: (v) {
-                    if (_autoCo2) setState(() => _autoCo2 = false);
-                    _spCo2 = v;
-                  },
+                      ),
+                    ],
+                  ),
                 ),
               ],
-
-              const SizedBox(height: 24),
-
-              // ===== Botão Salvar =====
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _saving ? null : _salvar,
-                  icon:
-                      _saving
-                          ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                          : const Icon(
-                            Icons.save,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                  label: Text(
-                    _saving ? 'Salvando...' : 'Salvar alterações',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today, color: scheme.secondary, size: 20),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Data de Início',
+                        style: textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        dataInicio,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 76, 175, 80),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressCard({
+    required ColorScheme scheme,
+    required TextTheme textTheme,
+    required LoteModel lote,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: scheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(Icons.settings, color: scheme.secondary),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Progresso do Cultivo',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            DropdownFasesCultivo(
+              idCogumelo: lote.idCogumelo ?? 0,
+              idFaseSelecionada: _faseSelecionadaId,
+              onChanged: (FaseCultivoModel? novaFase) {
+                if (novaFase == null || _ranges == null) return;
+                setState(() {
+                  _faseSelecionadaId = novaFase.idFaseCultivo;
+
+                  _ranges = Ranges(
+                    tMin: _toDouble(novaFase.temperaturaMin, _ranges!.tMin),
+                    tMax: _toDouble(novaFase.temperaturaMax, _ranges!.tMax),
+                    uMin: _toDouble(novaFase.umidadeMin, _ranges!.uMin),
+                    uMax: _toDouble(novaFase.umidadeMax, _ranges!.uMax),
+                    co2Max: _toDouble(novaFase.co2Max, _ranges!.co2Max),
+                  );
+
+                  _autoTemp = _autoUmid = _autoCo2 = true;
+                  _tempCtrl.value = _ranges!.mediaTemp;
+                  _umidCtrl.value = _ranges!.mediaUmid;
+                  _co2Ctrl.value = _ranges!.mediaCo2;
+
+                  _spTemp = _spUmid = _spCo2 = null;
+                });
+              },
+            ),
+          ],
         ),
       ),
     );

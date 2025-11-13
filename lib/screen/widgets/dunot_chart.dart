@@ -64,12 +64,12 @@ class DonutChartWidget extends StatelessWidget {
   final double size;
 
   const DonutChartWidget({
-    Key? key,
+    super.key,
     required this.percentage,
     this.strokeWidth = 20.0,
     this.color = Colors.blue,
     this.size = 150.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
-import 'package:smartmushroom_app/models/Chart_Data_Model.dart';
-import 'package:smartmushroom_app/models/Controle_Atuador_Model.dart';
-import 'package:smartmushroom_app/models/Leitura_Model.dart';
-import 'package:smartmushroom_app/models/Lote_Model.dart';
+import 'package:smartmushroom_app/models/chart_data_model.dart';
+import 'package:smartmushroom_app/models/controle_atuador_model.dart';
+import 'package:smartmushroom_app/models/leitura_model.dart';
+import 'package:smartmushroom_app/models/lote_model.dart';
 
 class SalaRemoteDataSource {
   SalaRemoteDataSource(this._dioClient);

@@ -5,11 +5,11 @@
 // import 'package:http/http.dart' as http;
 // import 'package:smartmushroom_app/constants.dart';
 // import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
-// import 'package:smartmushroom_app/screen/criarLote_page.dart';
+// import 'package:smartmushroom_app/screen/criar_lote_page.dart';
 // import 'package:smartmushroom_app/screen/ip_page.dart';
-// import 'package:smartmushroom_app/screen/painelSalas_page.dart';
+// import 'package:smartmushroom_app/screen/painel_salas_page.dart';
 // import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
-// import 'package:smartmushroom_app/screen/widgets/salaHome_card.dart';
+// import 'package:smartmushroom_app/screen/widgets/sala_home_card.dart';
 // import 'package:smartmushroom_app/screen/sala_page.dart';
 
 // class HomePage extends StatefulWidget {
@@ -331,11 +331,11 @@ import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/home/data/home_remote_datasource.dart';
 import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
-import 'package:smartmushroom_app/screen/criarLote_page.dart';
+import 'package:smartmushroom_app/screen/criar_lote_page.dart';
 import 'package:smartmushroom_app/screen/ip_page.dart';
-import 'package:smartmushroom_app/screen/painelSalas_page.dart';
+import 'package:smartmushroom_app/screen/painel_salas_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
-import 'package:smartmushroom_app/screen/widgets/salaHome_card.dart';
+import 'package:smartmushroom_app/screen/widgets/sala_home_card.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -427,11 +427,9 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Olá Colaborador!',
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontSize: 22,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -441,11 +439,10 @@ class _HomePageState extends State<HomePage> {
                       builder: (context, snapshot) {
                         return Text(
                           snapshot.data ?? '',
-                          style: const TextStyle(
-                            color: primaryColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         );
                       },
                     ),
@@ -561,7 +558,7 @@ Widget _buildActionsRow(BuildContext context) {
           height: 150,
           width: MediaQuery.of(context).size.width * 0.42,
           decoration: BoxDecoration(
-            color: primaryColor,
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -607,7 +604,7 @@ Widget _buildActionsRow(BuildContext context) {
           height: 150,
           width: MediaQuery.of(context).size.width * 0.42,
           decoration: BoxDecoration(
-            color: primaryColor,
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(

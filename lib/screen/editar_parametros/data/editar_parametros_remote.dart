@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
-import 'package:smartmushroom_app/models/Fase_Cultivo_Model.dart';
-import 'package:smartmushroom_app/models/Historico_Fase_Model.dart';
-import 'package:smartmushroom_app/models/Lote_Model.dart';
-import 'package:smartmushroom_app/models/Parametro_Model.dart';
+import 'package:smartmushroom_app/models/fase_cultivo_model.dart';
+import 'package:smartmushroom_app/models/historico_fase_model.dart';
+import 'package:smartmushroom_app/models/lote_model.dart';
+import 'package:smartmushroom_app/models/parametro_model.dart';
 
 class ApiException implements Exception {
   final String message;

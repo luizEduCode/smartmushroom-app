@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
-import 'package:smartmushroom_app/models/Fase_Cultivo_Model.dart';
+import 'package:smartmushroom_app/models/fase_cultivo_model.dart';
 import 'package:smartmushroom_app/screen/editar_parametros/data/editar_parametros_remote.dart';
 
 class DropdownFasesCultivo extends StatefulWidget {
@@ -62,27 +62,76 @@ class _DropdownFasesCultivoState extends State<DropdownFasesCultivo> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const CircularProgressIndicator();
-    if (_err != null) return Text(_err!);
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    return DropdownButtonFormField(
+    if (_loading) {
+      return Center(
+        child: SizedBox(
+          height: 32,
+          width: 32,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation(scheme.primary),
+          ),
+        ),
+      );
+    }
+
+    if (_err != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Não foi possível carregar as fases.',
+            style: textTheme.bodyMedium?.copyWith(color: scheme.error),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _carregar,
+            icon: Icon(Icons.refresh, color: scheme.primary),
+            label: const Text('Tentar novamente'),
+          ),
+        ],
+      );
+    }
+
+    final OutlineInputBorder baseBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: scheme.outlineVariant),
+    );
+
+    return DropdownButtonFormField<FaseCultivoModel>(
       value: _faseSelecionada,
       items:
           _fases
               .map(
                 (f) => DropdownMenuItem(
                   value: f,
-                  child: Text(f.nomeFaseCultivo ?? 'Fase sem nome'),
+                  child: Text(
+                    f.nomeFaseCultivo ?? 'Fase sem nome',
+                    style: textTheme.bodyMedium,
+                  ),
                 ),
               )
               .toList(),
+      icon: Icon(Icons.arrow_drop_down, color: scheme.primary),
+      dropdownColor: scheme.surface,
       onChanged: (v) {
         setState(() => _faseSelecionada = v);
         widget.onChanged?.call(v);
       },
       decoration: InputDecoration(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         labelText: 'Fase de Cultivo',
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest,
+        labelStyle: textTheme.labelLarge,
+        border: baseBorder,
+        enabledBorder: baseBorder,
+        focusedBorder: baseBorder.copyWith(
+          borderSide: BorderSide(color: scheme.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }

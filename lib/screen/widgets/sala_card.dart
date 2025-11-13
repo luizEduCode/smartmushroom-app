@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
 
 class SalaCard extends StatelessWidget {
@@ -29,6 +28,11 @@ class SalaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color backgroundColor =
+        status == 'finalizado'
+            ? Colors.grey
+            : Theme.of(context).colorScheme.primary;
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -46,8 +50,8 @@ class SalaCard extends StatelessWidget {
 
       child: Container(
         decoration: BoxDecoration(
-          color: status == 'finalizado' ? Colors.grey : primaryColor,
-          borderRadius: BorderRadius.all(Radius.circular(20)),
+          color: backgroundColor,
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),

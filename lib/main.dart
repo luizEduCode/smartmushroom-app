@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
+import 'package:smartmushroom_app/core/theme/app_theme.dart';
+import 'package:smartmushroom_app/core/theme/theme_notifier.dart';
 import 'package:smartmushroom_app/screen/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
   await GetStorage.init();
-  runApp(const MyApp());
+  runApp(const SmartMushroomApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SmartMushroomApp extends StatelessWidget {
+  const SmartMushroomApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SmartMushroom',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
-        useMaterial3: true,
+    return ChangeNotifierProvider(
+      create: (_) => ThemeViewModel(),
+      child: Consumer<ThemeViewModel>(
+        builder: (context, themeViewModel, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'SmartMushroom',
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: themeViewModel.themeMode,
+            home: SplashScreen(),
+          );
+        },
       ),
-      home: SplashScreen(),
     );
   }
 }
