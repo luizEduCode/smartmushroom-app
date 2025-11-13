@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
@@ -123,6 +124,13 @@ class SalaRemoteDataSource {
     throw ApiException('Resposta inesperada ao excluir lote.');
   }
 
+  /// Busca os dados agregados do gráfico da API `framework/leitura/grafico`.
+  ///
+  /// [aggregation] aceita `daily` ou `weekly`, refletindo o comportamento
+  /// suportado pelo backend. O endpoint responde com um JSON estruturado com
+  /// as chaves `chart_type`, `data` (lista de pontos contendo `x`, `y` e
+  /// `label`) e `metadata` com detalhes de título e eixos.
+
   Future<ChartDataModel> fetchChartData({
     required String idLote,
     required String metric,
@@ -138,25 +146,67 @@ class SalaRemoteDataSource {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final response = await _dioClient.get(
-        '/leitura/grafico/$idLote',
+      final response = await _dioClient.get<dynamic>(
+        'framework/leitura/grafico/$idLote',
         queryParameters: queryParams,
       );
-      if (response.data is Map<String, dynamic>) {
-        return ChartDataModel.fromJson(response.data as Map<String, dynamic>);
-      } else if (response.data is String && response.data.isEmpty) {
-        throw ApiException('A API retornou uma resposta vazia inesperada.');
-      } else {
+      final statusCode = response.statusCode ?? 500;
+      if (statusCode < 200 || statusCode >= 300) {
         throw ApiException(
-          'Formato inesperado ao buscar dados do gráfico: tipo '
-          '${response.data.runtimeType} recebido, esperado Map<String, dynamic>. '
-          'Conteúdo: ${response.data}',
+          'Falha ao buscar dados do gráfico. Detalhes: '
+          '${_stringifyResponseData(response.data)}',
+          statusCode: statusCode,
         );
       }
+
+      final data = _normaliseChartResponse(response.data);
+      if (data != null) {
+        return ChartDataModel.fromJson(data);
+      }
+
+      throw ApiException('A API retornou uma resposta vazia inesperada.');
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
       throw ApiException('Erro desconhecido ao buscar dados do gráfico: $e');
+    }
+  }
+
+  Map<String, dynamic>? _normaliseChartResponse(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    if (data is String) {
+      final trimmed = data.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+
+      try {
+        final decoded = jsonDecode(trimmed);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      } catch (_) {
+        // Ignored to fall-through to the error below.
+      }
+    }
+
+    throw ApiException(
+      'Formato inesperado ao buscar dados do gráfico: tipo '
+      '${data.runtimeType} recebido, esperado Map<String, dynamic>. '
+      'Conteúdo: ${_stringifyResponseData(data)}',
+    );
+  }
+
+  String _stringifyResponseData(dynamic data) {
+    if (data == null) return 'null';
+    if (data is String) return data;
+    try {
+      return jsonEncode(data);
+    } catch (_) {
+      return data.toString();
     }
   }
 }
