@@ -352,11 +352,11 @@ class _HomePageState extends State<HomePage> {
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: _homePadding),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200,
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
                     crossAxisSpacing: _homePadding,
                     mainAxisSpacing: _homePadding / 2,
-                    childAspectRatio: 1.07,
+                    childAspectRatio: _homeGridAspectRatio(context),
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final sala = _salas[index];
@@ -512,4 +512,12 @@ Widget _buildActionsRow(BuildContext context) {
       ),
     ],
   );
+}
+
+double _homeGridAspectRatio(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  if (width < 340) return 0.72;
+  if (width < 420) return 0.82;
+  if (width < 600) return 0.92;
+  return 1.05;
 }

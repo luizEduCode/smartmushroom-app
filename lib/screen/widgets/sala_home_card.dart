@@ -55,6 +55,8 @@ class SalahomeCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(_cardPadding),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -68,7 +70,7 @@ class SalahomeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 12),
                 //Row do cogumelo
                 Row(
                   children: [
@@ -95,40 +97,37 @@ class SalahomeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 12),
                 //Row dos parâmetros
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      temperatura != '--'
-                          ? '${double.parse(temperatura).toStringAsFixed(0)}°C'
-                          : '--°C',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: _MetricTile(
+                        label: '°C',
+                        value: temperatura != '--'
+                            ? double.parse(temperatura).toStringAsFixed(0)
+                            : '--',
                         color: foregroundColor,
                       ),
                     ),
-                    SizedBox(width: _cardPadding / 6),
-                    Text(
-                      umidade != '--'
-                          ? '${double.parse(umidade).toStringAsFixed(0)}%'
-                          : '--%',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MetricTile(
+                        label: '%',
+                        value: umidade != '--'
+                            ? double.parse(umidade).toStringAsFixed(0)
+                            : '--',
                         color: foregroundColor,
                       ),
                     ),
-                    SizedBox(width: _cardPadding / 6),
-                    Text(
-                      co2 != '--'
-                          ? '${double.parse(co2).toStringAsFixed(0)} ppm'
-                          : '--',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MetricTile(
+                        label: 'ppm',
+                        value: co2 != '--'
+                            ? double.parse(co2).toStringAsFixed(0)
+                            : '--',
                         color: foregroundColor,
                       ),
                     ),
@@ -139,6 +138,43 @@ class SalahomeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _MetricTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: color.withValues(alpha: 0.85),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -100,6 +100,11 @@ class _SalaViewState extends State<_SalaView> {
 
     final leitura = viewModel.leitura;
     final lote = viewModel.lote;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool compactButtons = screenWidth < 520;
+    final double buttonWidth = compactButtons
+        ? double.infinity
+        : (screenWidth - _salaPadding * 2 - 24) / 3;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -251,9 +256,12 @@ class _SalaViewState extends State<_SalaView> {
               }),
             ),
             SizedBox(height: 24),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
-                Expanded(
+                SizedBox(
+                  width: buttonWidth,
                   child: OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -270,22 +278,24 @@ class _SalaViewState extends State<_SalaView> {
                     label: const Text('Editar'),
                   ),
                 ),
-                SizedBox(width: 12),
-                Expanded(
+                SizedBox(
+                  width: buttonWidth,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
+                      minimumSize: const Size(0, 48),
                     ),
                     onPressed: () => _showFinalizeDialog(context),
                     icon: const Icon(Icons.flag),
                     label: const Text('Finalizar'),
                   ),
                 ),
-                SizedBox(width: 12),
-                Expanded(
+                SizedBox(
+                  width: buttonWidth,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.error,
+                      minimumSize: const Size(0, 48),
                     ),
                     onPressed: () => _showExcluirDialog(context),
                     icon: const Icon(Icons.delete),
