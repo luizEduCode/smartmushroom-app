@@ -46,7 +46,9 @@ graph TD
     UI[Widgets e Páginas] --> VM[ViewModels (Provider)]
     VM --> DS[Remote DataSource (Dio)]
     DS --> API[SmartMushroom API]
-    API -->|JSON| DS -->|Modelos| VM --> UI
+    API -->|JSON| DS
+    DS -->|Modelos| VM
+    VM --> UI
     Core[(Core Config/Theme)] --> UI
     Core --> DS
 ```
