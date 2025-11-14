@@ -25,7 +25,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final Color foregroundColor =
-        theme.appBarTheme.foregroundColor ?? Colors.white;
+        theme.appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary;
 
     return AppBar(
       leading:
@@ -58,12 +58,16 @@ class _ThemeToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onPrimary;
     return Consumer<ThemeViewModel>(
       builder: (context, themeViewModel, _) {
         final isDark = themeViewModel.isDarkMode;
         return IconButton(
           tooltip: isDark ? 'Alternar para modo claro' : 'Alternar para modo escuro',
-          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+          icon: Icon(
+            isDark ? Icons.light_mode : Icons.dark_mode,
+            color: color,
+          ),
           onPressed: themeViewModel.toggleTheme,
         );
       },

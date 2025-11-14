@@ -28,10 +28,12 @@ class SalaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bool isFinalizado = status == 'finalizado';
     final Color backgroundColor =
-        status == 'finalizado'
-            ? Colors.grey
-            : Theme.of(context).colorScheme.primary;
+        isFinalizado ? colorScheme.surfaceContainerHighest : colorScheme.primary;
+    final Color foregroundColor =
+        isFinalizado ? colorScheme.onSurface : colorScheme.onPrimary;
 
     return InkWell(
       onTap: () {
@@ -69,7 +71,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor,
                         ),
                       ),
                       Text(
@@ -77,7 +79,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.normal,
-                          color: Colors.white,
+                          color: foregroundColor.withValues(alpha: 0.85),
                         ),
                       ),
                     ],
@@ -87,10 +89,10 @@ class SalaCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.lightbulb, size: 22, color: Colors.white),
-                          Icon(Icons.lightbulb, size: 22, color: Colors.white),
-                          Icon(Icons.lightbulb, size: 22, color: Colors.white),
-                          Icon(Icons.lightbulb, size: 22, color: Colors.white),
+                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
+                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
+                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
+                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
                         ],
                       ),
 
@@ -99,7 +101,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.normal,
-                          color: Colors.white,
+                          color: foregroundColor,
                         ),
                       ),
                     ],
@@ -116,7 +118,7 @@ class SalaCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: foregroundColor,
                     ),
                   ),
                 ],
@@ -136,7 +138,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor,
                         ),
                       ),
                       Text(
@@ -144,7 +146,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -158,7 +160,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor,
                         ),
                       ),
                       Text(
@@ -166,7 +168,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -180,7 +182,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor,
                         ),
                       ),
                       Text(
@@ -188,7 +190,7 @@ class SalaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: foregroundColor.withValues(alpha: 0.8),
                         ),
                       ),
                     ],

@@ -5,12 +5,16 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFF1B1F3B);
-  static const Color secondary = Color(0xFF2E6E85);
-  static const Color accent = Color(0xFF66C6A2);
-  static const Color neutralLight = Color(0xFFF4F5F7);
-  static const Color neutral = Color(0xFF1F2430);
-  static const Color neutralDark = Color(0xFF0E111A);
-  static const Color warning = Color(0xFFFFB74D);
-  static const Color danger = Color(0xFFE57373);
+  /// Paleta inspirada em tons botânicos para reforçar a identidade da
+  /// SmartMushroom e garantir contraste em ambos os temas.
+  static const Color primary = Color(0xFF2F3B2F); // verde musgo escuro
+  static const Color secondary = Color(0xFF4E7053); // verde médio
+  static const Color accent = Color(0xFF8EE7A8); // verde claro/estado ideal
+
+  static const Color neutralLight = Color(0xFFF4EEE5); // fundo claro quente
+  static const Color neutral = Color(0xFF1C2420); // cinza-esverdeado
+  static const Color neutralDark = Color(0xFF0D1410); // quase preto
+
+  static const Color warning = Color(0xFFF6C453);
+  static const Color danger = Color(0xFFE16A6A);
 }

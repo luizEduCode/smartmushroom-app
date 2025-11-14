@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:smartmushroom_app/constants.dart';
+import 'package:smartmushroom_app/core/config/api_config.dart';
 
 class DioClient {
   DioClient({Dio? dio}) : _dio = dio ?? _createDefaultDio();
@@ -26,7 +26,7 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final baseUrl = getApiBaseUrl();
+          final baseUrl = ApiConfig.baseUrl;
 
           final path = options.path;
           final isAbsolute = path.startsWith('http://') || path.startsWith('https://');

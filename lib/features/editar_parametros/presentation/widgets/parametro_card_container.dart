@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/screen/editar_parametros/widgets/controlador_parametros.dart';
+import 'package:smartmushroom_app/features/editar_parametros/presentation/widgets/controlador_parametros.dart';
 
 enum ParametroTipo { temperatura, umidade, co2 }
 

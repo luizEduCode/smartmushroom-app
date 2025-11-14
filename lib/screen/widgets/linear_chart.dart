@@ -5,10 +5,12 @@ class LinearBarChartPainter extends CustomPainter {
   final double percentage; // valor entre 0.0 e 1.0
   final Color color; // cor do preenchimento
   final double barHeight; // altura da barra
+  final Color backgroundColor;
 
   LinearBarChartPainter({
     required this.percentage,
     required this.color,
+    required this.backgroundColor,
     this.barHeight = 20.0,
   });
 
@@ -20,7 +22,7 @@ class LinearBarChartPainter extends CustomPainter {
     // Retângulo de fundo (barra completa)
     final backgroundPaint =
         Paint()
-          ..color = Colors.grey[300]!
+          ..color = backgroundColor
           ..style = PaintingStyle.fill;
 
     final Rect backgroundRect = Rect.fromLTWH(0, top, size.width, barHeight);
@@ -49,7 +51,8 @@ class LinearBarChartPainter extends CustomPainter {
 class LinearBarChartWidget extends StatelessWidget {
   final double percentage;
   final double barHeight;
-  final Color color;
+  final Color? color;
+  final Color? backgroundColor;
   final double width;
   final double height;
 
@@ -57,18 +60,22 @@ class LinearBarChartWidget extends StatelessWidget {
     super.key,
     required this.percentage,
     this.barHeight = 20.0,
-    this.color = Colors.blue,
+    this.color,
+    this.backgroundColor,
     this.width = 200.0,
     this.height = 100.0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return CustomPaint(
       size: Size(width, height),
       painter: LinearBarChartPainter(
         percentage: percentage,
-        color: color,
+        color: color ?? scheme.tertiary,
+        backgroundColor:
+            backgroundColor ?? scheme.surfaceContainerHighest.withValues(alpha: 0.4),
         barHeight: barHeight,
       ),
     );

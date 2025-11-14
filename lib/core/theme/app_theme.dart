@@ -13,19 +13,29 @@ class AppTheme {
       seedColor: AppColors.primary,
       brightness: brightness,
     );
+
     final colorScheme = baseScheme.copyWith(
       primary: AppColors.primary,
       onPrimary: Colors.white,
       secondary: AppColors.secondary,
       onSecondary: Colors.white,
+      tertiary: AppColors.accent,
+      onTertiary: AppColors.primary,
+      surface: isLight ? Colors.white : AppColors.neutral,
+      onSurface: isLight ? const Color(0xFF1E1E1E) : Colors.white,
       error: AppColors.danger,
       onError: Colors.white,
-      surface: isLight ? Colors.white : AppColors.neutral,
-      onSurface: isLight ? AppColors.primary : Colors.white,
-      tertiary: AppColors.accent,
-      onTertiary: Colors.white,
       surfaceTint: AppColors.primary,
     );
+
+    final Color backgroundColor =
+        isLight ? AppColors.neutralLight : AppColors.neutralDark;
+
+    Color blendedSurface(double opacity) {
+      final Color overlay = (isLight ? Colors.white : Colors.black)
+          .withValues(alpha: opacity);
+      return Color.alphaBlend(overlay, colorScheme.surface);
+    }
 
     final baseTextTheme =
         isLight
@@ -35,27 +45,26 @@ class AppTheme {
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      scaffoldBackgroundColor:
-          isLight ? AppColors.neutralLight : AppColors.neutralDark,
+      scaffoldBackgroundColor: backgroundColor,
       textTheme: baseTextTheme.apply(
         bodyColor: colorScheme.onSurface,
         displayColor: colorScheme.onSurface,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         elevation: 0,
         titleTextStyle: baseTextTheme.titleLarge?.copyWith(
-          color: Colors.white,
+          color: colorScheme.onPrimary,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: colorScheme.onPrimary),
       ),
       cardTheme: CardTheme(
-        color: colorScheme.surface,
+        color: blendedSurface(isLight ? 0.85 : 0.2),
         surfaceTintColor: colorScheme.surfaceTint,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 2,
+        elevation: isLight ? 2 : 1,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colorScheme.primary,
@@ -66,15 +75,37 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.secondary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.secondary.withAlpha(102),
+          disabledBackgroundColor: AppColors.secondary.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           minimumSize: const Size(0, 48),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        ),
+      ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.accent,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: blendedSurface(isLight ? 0.92 : 0.25),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
       ),
     );
   }

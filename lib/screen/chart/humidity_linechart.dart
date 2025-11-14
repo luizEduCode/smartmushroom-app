@@ -36,9 +36,16 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final axisTextStyle = theme.textTheme.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+
     return Card(
-      color: const Color.fromARGB(255, 214, 214, 214),
-      surfaceTintColor: Colors.grey,
+      color: theme.cardColor,
+      surfaceTintColor: scheme.surfaceTint,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -57,7 +64,9 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
                   child: Text(
                     'Erro ao carregar o gráfico: ${snapshot.error}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.error,
+                    ),
                   ),
                 ),
               );
@@ -65,11 +74,14 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
               final chartData = snapshot.data!;
 
               if (chartData.data.isEmpty) {
-                return const SizedBox(
+                return SizedBox(
                   height: 175,
                   child: Center(
                     child: Text(
                       'Nenhum dado de umidade disponível para o período.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 );
@@ -89,27 +101,35 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
               List<String> xLabels =
                   chartData.data.map((e) => e.label).toList();
 
-              Color chartColor = Color(
-                int.parse(chartData.metadata.color.replaceFirst('#', '0xFF')),
-              );
+              Color chartColor;
+              try {
+                chartColor = Color(
+                  int.parse(
+                    chartData.metadata.color.replaceFirst('#', '0xFF'),
+                  ),
+                );
+              } catch (_) {
+                chartColor = scheme.secondary;
+              }
 
               return SizedBox(
                 height: 175,
                 child: LineChart(
                   LineChartData(
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: spots,
-                        color: chartColor,
-                        barWidth: 3,
-                        isCurved: false,
-                        dotData: const FlDotData(show: false),
-                      ),
-                    ],
-                    backgroundColor: Colors.white30,
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      show: true,
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: spots,
+                            color: chartColor,
+                            barWidth: 3,
+                            isCurved: false,
+                            dotData: const FlDotData(show: false),
+                          ),
+                        ],
+                        backgroundColor:
+                            scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        borderData: FlBorderData(show: false),
+                        titlesData: FlTitlesData(
+                          show: true,
                       rightTitles: const AxisTitles(sideTitles: SideTitles()),
                       topTitles: const AxisTitles(sideTitles: SideTitles()),
                       bottomTitles: AxisTitles(
@@ -123,23 +143,19 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
                                     spots.length.toDouble(),
                                   )
                                   : 1,
-                          getTitlesWidget: (value, meta) {
-                            int index = value.toInt();
-                            if (index >= 0 && index < xLabels.length) {
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
-                                  xLabels[index],
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.blueGrey,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
+                              getTitlesWidget: (value, meta) {
+                                int index = value.toInt();
+                                if (index >= 0 && index < xLabels.length) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      xLabels[index],
+                                      style: axisTextStyle,
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
                         ),
                       ),
                       leftTitles: AxisTitles(
@@ -147,16 +163,12 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
                           showTitles: true,
                           reservedSize: 40,
                           interval: 20,
-                          getTitlesWidget: (value, meta) {
-                            return Text(
-                              value.toInt().toString(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.blueGrey,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          },
+                              getTitlesWidget: (value, meta) {
+                                return Text(
+                                  value.toInt().toString(),
+                                  style: axisTextStyle,
+                                );
+                              },
                         ),
                       ),
                     ),
@@ -164,27 +176,28 @@ class _HumidityLinechartState extends State<HumidityLinechart> {
                     maxX: maxX,
                     minY: minY,
                     maxY: maxY,
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      getDrawingHorizontalLine:
-                          (value) => const FlLine(
-                            color: Colors.grey,
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: scheme.outlineVariant,
                             strokeWidth: 0.5,
                           ),
-                    ),
-                    lineTouchData: LineTouchData(
-                      touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (spot) => Colors.blueGrey, // Changed here
-                        getTooltipItems: (touchedSpots) {
-                          return touchedSpots.map((spot) {
-                            final originalData = chartData.data[spot.spotIndex];
-                            return LineTooltipItem(
-                              '${originalData.label}\n${spot.y.toStringAsFixed(0)}%',
-                              const TextStyle(color: Colors.white),
-                            );
-                          }).toList();
-                        },
+                        ),
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            getTooltipColor: (spot) => scheme.primary,
+                            getTooltipItems: (touchedSpots) {
+                              return touchedSpots.map((spot) {
+                                final originalData = chartData.data[spot.spotIndex];
+                                return LineTooltipItem(
+                                  '${originalData.label}\n${spot.y.toStringAsFixed(0)}%',
+                                  TextStyle(
+                                    color: scheme.onPrimary,
+                                  ),
+                                );
+                              }).toList();
+                            },
                       ),
                     ),
                   ),

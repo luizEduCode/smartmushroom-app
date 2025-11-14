@@ -32,37 +32,43 @@ class ParamVisualTheme {
   });
 }
 
+Color _blend(Color surface, Color tone, double opacity) {
+  return Color.alphaBlend(tone.withValues(alpha: opacity), surface);
+}
+
 ParamVisualTheme themeFor(ThemeData theme, ParamLevel level) {
   final scheme = theme.colorScheme;
+  final bool isLight = theme.brightness == Brightness.light;
+  final Color surface = theme.cardColor;
   switch (level) {
     case ParamLevel.low:
       return ParamVisualTheme(
-        cardBg: scheme.primaryContainer.withValues(alpha: 0.4),
-        accent: scheme.primary,
-        chipBorder: scheme.primaryContainer,
+        cardBg: _blend(surface, scheme.error, isLight ? 0.15 : 0.4),
+        accent: scheme.error,
+        chipBorder: scheme.error.withValues(alpha: isLight ? 0.4 : 0.7),
         chipLabel: 'Baixo',
         chipIcon: Icons.south_east,
-        trackBase: scheme.surfaceContainerHighest,
-        trackLeft: scheme.onSurface.withValues(alpha: 0.6),
+        trackBase: _blend(surface, scheme.error, 0.1),
+        trackLeft: scheme.error,
       );
     case ParamLevel.high:
       return ParamVisualTheme(
-        cardBg: scheme.errorContainer.withValues(alpha: 0.4),
-        accent: scheme.error,
-        chipBorder: scheme.errorContainer,
+        cardBg: _blend(surface, scheme.secondary, isLight ? 0.2 : 0.45),
+        accent: scheme.secondary,
+        chipBorder: scheme.secondary.withValues(alpha: isLight ? 0.35 : 0.7),
         chipLabel: 'Alto',
         chipIcon: Icons.trending_up,
-        trackBase: scheme.surfaceContainerHighest,
-        trackLeft: scheme.onSurface.withValues(alpha: 0.6),
+        trackBase: _blend(surface, scheme.secondary, 0.12),
+        trackLeft: scheme.secondary,
       );
     case ParamLevel.ideal:
       return ParamVisualTheme(
-        cardBg: scheme.tertiaryContainer.withValues(alpha: 0.4),
+        cardBg: _blend(surface, scheme.tertiary, isLight ? 0.2 : 0.4),
         accent: scheme.tertiary,
-        chipBorder: scheme.tertiaryContainer,
+        chipBorder: scheme.tertiary.withValues(alpha: isLight ? 0.5 : 0.8),
         chipLabel: 'Ideal',
         chipIcon: Icons.check,
-        trackBase: scheme.surfaceContainerHighest,
+        trackBase: _blend(surface, scheme.tertiary, 0.12),
         trackLeft: scheme.onSurface.withValues(alpha: 0.6),
       );
   }

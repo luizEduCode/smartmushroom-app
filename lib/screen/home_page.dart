@@ -1,138 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'dart:async';
-// import 'package:intl/intl.dart';
-// import 'dart:convert';
-// import 'package:http/http.dart' as http;
-// import 'package:smartmushroom_app/constants.dart';
-// import 'package:smartmushroom_app/models/salas_lotes_ativos.dart';
-// import 'package:smartmushroom_app/screen/criar_lote_page.dart';
-// import 'package:smartmushroom_app/screen/ip_page.dart';
-// import 'package:smartmushroom_app/screen/painel_salas_page.dart';
-// import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
-// import 'package:smartmushroom_app/screen/widgets/sala_home_card.dart';
-// import 'package:smartmushroom_app/screen/sala_page.dart';
-
-// class HomePage extends StatefulWidget {
-//   const HomePage({super.key});
-
-//   @override
-//   State<HomePage> createState() => _HomePageState();
-// }
-
-// class _HomePageState extends State<HomePage> {
-//   late Timer _timer;
-//   List _salas = [];
-//   bool _isLoading = true;
-//   bool _hasError = false;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     fetchSalas();
-//     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-//       fetchSalas();
-//     });
-//   }
-
-//   @override
-//   void dispose() {
-//     _timer.cancel();
-//     super.dispose();
-//   }
-
-//   Future<void> fetchSalas() async {
-//     try {
-//       final response = await http.get(
-//         Uri.parse('${getApiBaseUrl()}framework/sala/listarSalasComLotesAtivos'),
-//         headers: {'Accept': 'application/json'},
-//       );
-
-//       if (response.statusCode == 200) {
-//         final data = jsonDecode(response.body);
-
-//         // Parse usando o modelo
-//         final salasAtivos = SalaLotesAtivos.fromJson(data);
-//         final List<Salas> listaSalas = salasAtivos.salas ?? [];
-
-//         if (mounted) {
-//           setState(() {
-//             _salas = listaSalas;
-//             _isLoading = false;
-//             _hasError = false;
-//           });
-//         }
-//       } else {
-//         if (mounted) {
-//           setState(() {
-//             _hasError = true;
-//             _isLoading = false;
-//           });
-//         }
-//       }
-//     } catch (e) {
-//       if (mounted) {
-//         setState(() {
-//           _hasError = true;
-//           _isLoading = false;
-//         });
-//       }
-//       debugPrint('Error fetching salas: $e');
-//     }
-//   }
-
-//   Stream<String> getCurrentDateTimeStream() async* {
-//     while (true) {
-//       await Future.delayed(const Duration(seconds: 1));
-//       final now = DateTime.now();
-//       yield DateFormat('dd MMMM yyyy', 'pt_BR').format(now);
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: CustomAppBar(
-//         title: 'Smartmushroom',
-//         showBackButton: false,
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.route_outlined, color: Colors.white),
-//             onPressed: () {
-//               Navigator.push(
-//                 context,
-//                 MaterialPageRoute(builder: (context) => ConfigIPPage()),
-//               );
-//             },
-//           ),
-//         ],
-//       ),
-//       body: SingleChildScrollView(
-//         child: Padding(
-//           padding: const EdgeInsets.all(defaultPadding),
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.start,
-//             children: [
-//               Column(
-//                 children: [
-//                   const Row(
-//                     mainAxisAlignment: MainAxisAlignment.start,
-//                     children: [
-//                       SizedBox(width: defaultPadding),
-//                       Text(
-//                         'Olá Colaborador!',
-//                         style: TextStyle(
-//                           color: primaryColor,
-//                           fontSize: 22,
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                   const SizedBox(width: defaultPadding),
-//                   Row(
-//                     mainAxisAlignment: MainAxisAlignment.start,
-//                     children: [
-//                       const SizedBox(width: defaultPadding),
 //                       StreamBuilder<String>(
 //                         stream: getCurrentDateTimeStream(),
 //                         builder: (context, snapshot) {
@@ -150,7 +15,7 @@
 //                   ),
 //                 ],
 //               ),
-//               const SizedBox(height: defaultPadding),
+//               const SizedBox(height: _homePadding),
 //               RefreshIndicator(
 //                 onRefresh: fetchSalas,
 //                 child:
@@ -164,7 +29,7 @@
 //                           gridDelegate:
 //                               const SliverGridDelegateWithMaxCrossAxisExtent(
 //                                 maxCrossAxisExtent: 200,
-//                                 crossAxisSpacing: defaultPadding,
+//                                 crossAxisSpacing: _homePadding,
 //                                 childAspectRatio: 1.07,
 //                               ),
 //                           itemCount: _salas.length,
@@ -242,7 +107,7 @@
 //                         ],
 //                       ),
 //                       child: const Padding(
-//                         padding: EdgeInsets.all(defaultPadding),
+//                         padding: EdgeInsets.all(_homePadding),
 //                         child: Column(
 //                           children: [
 //                             Row(
@@ -292,7 +157,7 @@
 //                         ],
 //                       ),
 //                       child: const Padding(
-//                         padding: EdgeInsets.all(defaultPadding),
+//                         padding: EdgeInsets.all(_homePadding),
 //                         child: Column(
 //                           children: [
 //                             Row(
@@ -315,7 +180,7 @@
 //                   ),
 //                 ],
 //               ),
-//               const SizedBox(height: defaultPadding),
+//               const SizedBox(height: _homePadding),
 //             ],
 //           ),
 //         ),
@@ -327,7 +192,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/home/data/home_remote_datasource.dart';
 import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
@@ -337,6 +201,8 @@ import 'package:smartmushroom_app/screen/painel_salas_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_home_card.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
+
+const double _homePadding = 16.0;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -400,13 +266,20 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final onPrimary = colorScheme.onPrimary;
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Smartmushroom',
         showBackButton: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.route_outlined, color: Colors.white),
+            icon: Icon(
+              Icons.route_outlined,
+              color: theme.appBarTheme.foregroundColor ?? onPrimary,
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -422,7 +295,7 @@ class _HomePageState extends State<HomePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.all(defaultPadding),
+              padding: const EdgeInsets.all(_homePadding),
               sliver: SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,7 +306,7 @@ class _HomePageState extends State<HomePage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: defaultPadding / 2),
+                    const SizedBox(height: _homePadding / 2),
                     StreamBuilder<String>(
                       stream: getCurrentDateTimeStream(),
                       builder: (context, snapshot) {
@@ -446,7 +319,7 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    const SizedBox(height: defaultPadding * 1.5),
+                    const SizedBox(height: _homePadding * 1.5),
                   ],
                 ),
               ),
@@ -456,7 +329,7 @@ class _HomePageState extends State<HomePage> {
                 hasScrollBody: false,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: defaultPadding,
+                    horizontal: _homePadding,
                   ),
                   child: Column(
                     children: [
@@ -468,21 +341,21 @@ class _HomePageState extends State<HomePage> {
                                   : const Text('Erro ao carregar dados'),
                         ),
                       ),
-                      const SizedBox(height: defaultPadding),
+                      const SizedBox(height: _homePadding),
                       _buildActionsRow(context),
-                      const SizedBox(height: defaultPadding * 1.5),
+                      const SizedBox(height: _homePadding * 1.5),
                     ],
                   ),
                 ),
               )
             else ...[
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+                padding: const EdgeInsets.symmetric(horizontal: _homePadding),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 200,
-                    crossAxisSpacing: defaultPadding,
-                    mainAxisSpacing: defaultPadding / 2,
+                    crossAxisSpacing: _homePadding,
+                    mainAxisSpacing: _homePadding / 2,
                     childAspectRatio: 1.07,
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
@@ -524,13 +397,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
+                padding: const EdgeInsets.symmetric(horizontal: _homePadding),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      const SizedBox(height: defaultPadding / 4),
+                      const SizedBox(height: _homePadding / 4),
                       _buildActionsRow(context),
-                      const SizedBox(height: defaultPadding * 1.5),
+                      const SizedBox(height: _homePadding * 1.5),
                     ],
                   ),
                 ),
@@ -544,6 +417,11 @@ class _HomePageState extends State<HomePage> {
 }
 
 Widget _buildActionsRow(BuildContext context) {
+  final theme = Theme.of(context);
+  final colorScheme = theme.colorScheme;
+  final Color foreground = colorScheme.onPrimary;
+  final Color shadowColor = theme.shadowColor.withValues(alpha: 0.25);
+
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceAround,
     children: [
@@ -558,41 +436,40 @@ Widget _buildActionsRow(BuildContext context) {
           height: 150,
           width: MediaQuery.of(context).size.width * 0.42,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
+            color: colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(100),
+                color: shadowColor,
                 blurRadius: 10,
                 spreadRadius: 2,
                 offset: const Offset(4, 4),
               ),
             ],
           ),
-          child: const Padding(
-            padding: EdgeInsets.all(defaultPadding),
+          child: Padding(
+            padding: const EdgeInsets.all(_homePadding),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Icon(
                   Icons.meeting_room_outlined,
                   size: 80,
-                  color: Colors.white,
+                  color: foreground,
                 ),
                 Text(
                   'Painel Salas',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),
           ),
         ),
       ),
-      const SizedBox(width: defaultPadding),
+      const SizedBox(width: _homePadding),
       InkWell(
         onTap: () {
           Navigator.push(
@@ -604,30 +481,29 @@ Widget _buildActionsRow(BuildContext context) {
           height: 150,
           width: MediaQuery.of(context).size.width * 0.42,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
+            color: colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(100),
+                color: shadowColor,
                 blurRadius: 10,
                 spreadRadius: 2,
                 offset: const Offset(4, 4),
               ),
             ],
           ),
-          child: const Padding(
-            padding: EdgeInsets.all(defaultPadding),
+          child: Padding(
+            padding: const EdgeInsets.all(_homePadding),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Icon(Icons.add, size: 80, color: Colors.white),
+                Icon(Icons.add, size: 80, color: foreground),
                 Text(
                   'Criar Lote',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),

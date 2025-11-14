@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
+
+const double _cardPadding = 16.0;
 
 class SalahomeCard extends StatelessWidget {
   final String nomeSala;
@@ -28,10 +29,12 @@ class SalahomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bool isFinalizado = status == 'finalizado';
     final Color backgroundColor =
-        status == 'finalizado'
-            ? Colors.grey
-            : Theme.of(context).colorScheme.primary;
+        isFinalizado ? colorScheme.surfaceContainerHighest : colorScheme.primary;
+    final Color foregroundColor =
+        isFinalizado ? colorScheme.onSurface : colorScheme.onPrimary;
 
     return InkWell(
       onTap: () {
@@ -50,7 +53,7 @@ class SalahomeCard extends StatelessWidget {
             borderRadius: const BorderRadius.all(Radius.circular(20)),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(defaultPadding),
+            padding: const EdgeInsets.all(_cardPadding),
             child: Column(
               children: [
                 Row(
@@ -60,7 +63,7 @@ class SalahomeCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: foregroundColor,
                       ),
                     ),
                   ],
@@ -77,7 +80,7 @@ class SalahomeCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: foregroundColor,
                           ),
                         ),
                         Text(
@@ -85,7 +88,7 @@ class SalahomeCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: foregroundColor,
                           ),
                         ),
                       ],
@@ -104,10 +107,10 @@ class SalahomeCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: foregroundColor,
                       ),
                     ),
-                    SizedBox(width: defaultPadding / 6),
+                    SizedBox(width: _cardPadding / 6),
                     Text(
                       umidade != '--'
                           ? '${double.parse(umidade).toStringAsFixed(0)}%'
@@ -115,10 +118,10 @@ class SalahomeCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: foregroundColor,
                       ),
                     ),
-                    SizedBox(width: defaultPadding / 6),
+                    SizedBox(width: _cardPadding / 6),
                     Text(
                       co2 != '--'
                           ? '${double.parse(co2).toStringAsFixed(0)} ppm'
@@ -126,7 +129,7 @@ class SalahomeCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: foregroundColor,
                       ),
                     ),
                   ],

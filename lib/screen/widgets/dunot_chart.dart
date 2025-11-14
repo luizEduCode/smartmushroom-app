@@ -6,10 +6,12 @@ class DonutChartPainter extends CustomPainter {
   final double percentage; // valor entre 0.0 e 1.0
   final Color color; // cor do arco
   final double strokeWidth; // espessura do anel
+  final Color backgroundColor;
 
   DonutChartPainter({
     required this.percentage,
     required this.color,
+    required this.backgroundColor,
     this.strokeWidth = 20.0,
   });
 
@@ -21,7 +23,7 @@ class DonutChartPainter extends CustomPainter {
     // Círculo de fundo (cinza claro)
     final backgroundPaint =
         Paint()
-          ..color = Colors.grey[300]!
+          ..color = backgroundColor
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth;
 
@@ -60,24 +62,29 @@ class DonutChartPainter extends CustomPainter {
 class DonutChartWidget extends StatelessWidget {
   final double percentage;
   final double strokeWidth;
-  final Color color;
+  final Color? color;
+  final Color? backgroundColor;
   final double size;
 
   const DonutChartWidget({
     super.key,
     required this.percentage,
     this.strokeWidth = 20.0,
-    this.color = Colors.blue,
+    this.color,
+    this.backgroundColor,
     this.size = 150.0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return CustomPaint(
       size: Size(size, size),
       painter: DonutChartPainter(
         percentage: percentage,
-        color: color,
+        color: color ?? scheme.tertiary,
+        backgroundColor: backgroundColor ??
+            scheme.surfaceContainerHighest.withValues(alpha: 0.4),
         strokeWidth: strokeWidth,
       ),
     );

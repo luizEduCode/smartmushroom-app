@@ -1,6 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
+const double _chartPadding = 16.0;
 
 class RingChart extends StatelessWidget {
   final String temperatura;
@@ -18,13 +18,15 @@ class RingChart extends StatelessWidget {
     double porcentagem = (valor.clamp(0, 50) / 50); // Limita entre 0% e 100%
 
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final onPrimary = colorScheme.onPrimary;
 
     return Card(
-      color: theme.colorScheme.primary,
-      surfaceTintColor: theme.colorScheme.primary,
+      color: colorScheme.primary,
+      surfaceTintColor: colorScheme.primary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(defaultPadding),
+        padding: const EdgeInsets.all(_chartPadding),
         child: Column(
           children: [
             Row(
@@ -33,21 +35,21 @@ class RingChart extends StatelessWidget {
                 Text(
                   'Temperatura',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: defaultPadding,
+                    color: onPrimary,
+                    fontSize: _chartPadding,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Icon(
                   Icons
                       .thermostat_outlined, // Ícone mais apropriado para temperatura
-                  color: Colors.white,
-                  size: defaultPadding,
+                  color: onPrimary,
+                  size: _chartPadding,
                 ),
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(defaultPadding),
+              padding: const EdgeInsets.all(_chartPadding),
               child: Center(
                 child: SizedBox(
                   height: 100,
@@ -65,13 +67,14 @@ class RingChart extends StatelessWidget {
                               value: porcentagem * 100, // Valor preenchido
                               color: _getTemperatureColor(
                                 valor,
+                                colorScheme,
                               ), // Cor baseada na temperatura
                               showTitle: false,
                               radius: 5,
                             ),
                             PieChartSectionData(
                               value: (1 - porcentagem) * 100, // Valor restante
-                              color: Colors.grey,
+                              color: onPrimary.withValues(alpha: 0.2),
                               showTitle: false,
                               radius: 5,
                             ),
@@ -88,7 +91,7 @@ class RingChart extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: onPrimary,
                             ),
                           ),
                           Text(
@@ -96,7 +99,7 @@ class RingChart extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w300,
-                              color: Colors.white,
+                              color: onPrimary.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -113,10 +116,10 @@ class RingChart extends StatelessWidget {
   }
 
   // Função para determinar a cor baseada na temperatura
-  Color _getTemperatureColor(double temp) {
-    if (temp < 15) return Colors.blue; // Frio
-    if (temp < 25) return Colors.green; // Ideal
-    if (temp < 35) return Colors.orange; // Quente
-    return Colors.red; // Muito quente
+  Color _getTemperatureColor(double temp, ColorScheme scheme) {
+    if (temp < 15) return scheme.error;
+    if (temp < 25) return scheme.tertiary;
+    if (temp < 35) return scheme.secondary;
+    return scheme.error.withValues(alpha: 0.8);
   }
 }

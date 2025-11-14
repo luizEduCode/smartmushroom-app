@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
+const double _chartPadding = 16.0;
 
 class OnebarChart extends StatelessWidget {
   const OnebarChart({super.key});
@@ -7,12 +7,13 @@ class OnebarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onPrimary = theme.colorScheme.onPrimary;
     return Card(
       color: theme.colorScheme.primary,
       surfaceTintColor: theme.colorScheme.primary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(defaultPadding),
+        padding: const EdgeInsets.all(_chartPadding),
         child: Column(
           children: [
             Row(
@@ -21,20 +22,20 @@ class OnebarChart extends StatelessWidget {
                 Text(
                   'Temperatura',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: defaultPadding,
+                    color: onPrimary,
+                    fontSize: _chartPadding,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Icon(
                   Icons.water_drop_outlined,
-                  color: Colors.white,
-                  size: defaultPadding,
+                  color: onPrimary,
+                  size: _chartPadding,
                 ),
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(defaultPadding),
+              padding: const EdgeInsets.all(_chartPadding),
               child: Center(
                 child: SizedBox(
                   height: 100,
@@ -52,7 +53,7 @@ class OnebarChart extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: onPrimary,
                             ),
                           ),
                           Text(
@@ -60,7 +61,7 @@ class OnebarChart extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w300,
-                              color: Colors.white,
+                              color: onPrimary,
                             ),
                           ),
                         ],

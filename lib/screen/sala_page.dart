@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
@@ -9,8 +8,10 @@ import 'package:smartmushroom_app/screen/chart/co2_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/humidity_linechart.dart';
 import 'package:smartmushroom_app/screen/chart/ring_chart.dart';
 import 'package:smartmushroom_app/screen/chart/temperature_linechart.dart';
-import 'package:smartmushroom_app/screen/editar_parametros/editar_parametros_page.dart';
+import 'package:smartmushroom_app/features/editar_parametros/presentation/pages/editar_parametros_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+
+const double _salaPadding = 16.0;
 
 class SalaPage extends StatelessWidget {
   final String nomeSala;
@@ -77,7 +78,7 @@ class _SalaViewState extends State<_SalaView> {
     if (viewModel.hasError) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(defaultPadding),
+          padding: const EdgeInsets.all(_salaPadding),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -85,7 +86,7 @@ class _SalaViewState extends State<_SalaView> {
                 'Não foi possível carregar os dados da sala.',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: defaultPadding),
+              SizedBox(height: _salaPadding),
               FilledButton.icon(
                 onPressed: viewModel.loadAll,
                 icon: const Icon(Icons.refresh),
@@ -105,10 +106,10 @@ class _SalaViewState extends State<_SalaView> {
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           clipBehavior: Clip.none,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Padding(
-              padding: const EdgeInsets.all(defaultPadding),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: Padding(
+              padding: const EdgeInsets.all(_salaPadding),
               child: Column(
           children: [
             Row(
@@ -119,17 +120,17 @@ class _SalaViewState extends State<_SalaView> {
                     valor: leitura?.temperaturaNum ?? 0.0,
                   ),
                 ),
-                const SizedBox(width: 20),
+                SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildInfoItem('Cogumelo', lote?.nomeCogumelo),
-                      const SizedBox(height: defaultPadding / 2),
+                      SizedBox(height: _salaPadding / 2),
                       _buildInfoItem('Data Início', lote?.dataInicio),
-                      const SizedBox(height: defaultPadding / 2),
+                      SizedBox(height: _salaPadding / 2),
                       _buildInfoItem('Lote', lote?.idLote),
-                      const SizedBox(height: defaultPadding / 2),
+                      SizedBox(height: _salaPadding / 2),
                       _buildInfoItem(
                         'Sala',
                         lote?.nomeSala ?? widget.fallbackNomeSala,
@@ -139,7 +140,7 @@ class _SalaViewState extends State<_SalaView> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
@@ -152,21 +153,24 @@ class _SalaViewState extends State<_SalaView> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       LinearProgressIndicator(
                         value: viewModel.humidityValue,
                         backgroundColor:
                             Theme.of(context).colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          _getHumidityColor(leitura?.umidadeNum ?? 0),
+                          _getHumidityColor(
+                            Theme.of(context).colorScheme,
+                            leitura?.umidadeNum ?? 0,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Text('${leitura?.umidade ?? '--'}%'),
                     ],
                   ),
                 ),
-                const SizedBox(width: 20),
+                SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,23 +181,26 @@ class _SalaViewState extends State<_SalaView> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       LinearProgressIndicator(
                         value: viewModel.co2Value,
                         backgroundColor:
                             Theme.of(context).colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          _getCO2Color(leitura?.co2Num ?? 0),
+                          _getCO2Color(
+                            Theme.of(context).colorScheme,
+                            leitura?.co2Num ?? 0,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Text('${leitura?.co2 ?? '--'}ppm'),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(4, (index) {
@@ -202,6 +209,7 @@ class _SalaViewState extends State<_SalaView> {
                 final buttonColor = isAtivo
                     ? Theme.of(context).colorScheme.tertiary
                     : Theme.of(context).colorScheme.secondary;
+                final onPrimaryColor = Theme.of(context).colorScheme.onPrimary;
                 final iconData = _getAtuadorIcon(idAtuador);
                 final label = _getAtuadorLabel(idAtuador);
 
@@ -212,6 +220,8 @@ class _SalaViewState extends State<_SalaView> {
                         backgroundColor: buttonColor,
                         shape: const CircleBorder(),
                         padding: const EdgeInsets.all(20),
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                       ),
                       onPressed:
                           viewModel.isAtuadorLoading
@@ -222,24 +232,25 @@ class _SalaViewState extends State<_SalaView> {
                               ),
                       child:
                           viewModel.isAtuadorLoading
-                              ? const SizedBox(
+                              ? SizedBox(
                                 height: 22,
                                 width: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 3,
-                                  valueColor:
-                                      AlwaysStoppedAnimation(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation(
+                                    onPrimaryColor,
+                                  ),
                                 ),
                               )
-                              : Icon(iconData, color: Colors.white, size: 26),
+                              : Icon(iconData, color: onPrimaryColor, size: 26),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(label, style: const TextStyle(fontSize: 12)),
                   ],
                 );
               }),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
@@ -259,7 +270,7 @@ class _SalaViewState extends State<_SalaView> {
                     label: const Text('Editar'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
@@ -270,7 +281,7 @@ class _SalaViewState extends State<_SalaView> {
                     label: const Text('Finalizar'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
@@ -283,25 +294,25 @@ class _SalaViewState extends State<_SalaView> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             _buildChartSection(
               context,
               'Temperatura',
               TemperatureLinechart(idLote: widget.idLote),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _buildChartSection(
               context,
               'Umidade',
               HumidityLinechart(idLote: widget.idLote),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _buildChartSection(
               context,
               'Co²',
               Co2Linechart(idLote: widget.idLote),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
         ),
             ),
@@ -410,7 +421,7 @@ class _SalaViewState extends State<_SalaView> {
   }) {
     return showDialog<bool>(
       barrierDismissible: false,
-      barrierColor: Colors.black.withAlpha(120),
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
@@ -443,7 +454,7 @@ class _SalaViewState extends State<_SalaView> {
           label,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(value?.toString() ?? '--', style: const TextStyle(fontSize: 16)),
       ],
     );
@@ -463,7 +474,7 @@ class _SalaViewState extends State<_SalaView> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         chart,
       ],
     );
@@ -484,17 +495,17 @@ class _SalaViewState extends State<_SalaView> {
     );
   }
 
-  static Color _getHumidityColor(double humidity) {
-    if (humidity < 30) return Colors.red;
-    if (humidity < 60) return Colors.orange;
-    if (humidity < 80) return const Color(0xFF4CAF50);
-    return Colors.blue;
+  static Color _getHumidityColor(ColorScheme scheme, double humidity) {
+    if (humidity < 30) return scheme.error;
+    if (humidity < 60) return scheme.secondary;
+    if (humidity < 80) return scheme.tertiary;
+    return scheme.primary;
   }
 
-  static Color _getCO2Color(double co2) {
-    if (co2 < 400) return const Color(0xFF4CAF50);
-    if (co2 < 1000) return Colors.orange;
-    return Colors.red;
+  static Color _getCO2Color(ColorScheme scheme, double co2) {
+    if (co2 < 400) return scheme.tertiary;
+    if (co2 < 1000) return scheme.secondary;
+    return scheme.error;
   }
 
   static IconData _getAtuadorIcon(int idAtuador) {

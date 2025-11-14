@@ -41,9 +41,16 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final axisTextStyle = theme.textTheme.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+
     return Card(
-      color: const Color.fromARGB(255, 214, 214, 214),
-      surfaceTintColor: Colors.grey,
+      color: theme.cardColor,
+      surfaceTintColor: scheme.surfaceTint,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -62,7 +69,9 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
                   child: Text(
                     'Erro ao carregar o gráfico: ${snapshot.error}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.error,
+                    ),
                   ),
                 ),
               );
@@ -70,11 +79,14 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
               final chartData = snapshot.data!;
 
               if (chartData.data.isEmpty) {
-                return const SizedBox(
+                return SizedBox(
                   height: 175,
                   child: Center(
                     child: Text(
                       'Nenhum dado de temperatura disponível para o período.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 );
@@ -104,9 +116,16 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
               List<String> xLabels =
                   chartData.data.map((e) => e.label).toList();
 
-              Color chartColor = Color(
-                int.parse(chartData.metadata.color.replaceFirst('#', '0xFF')),
-              );
+              Color chartColor;
+              try {
+                chartColor = Color(
+                  int.parse(
+                    chartData.metadata.color.replaceFirst('#', '0xFF'),
+                  ),
+                );
+              } catch (_) {
+                chartColor = scheme.tertiary;
+              }
 
               return Column(
                 children: [
@@ -124,14 +143,15 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
                             isCurved: false,
                             isStrokeCapRound: true,
                             isStrokeJoinRound: false,
-                            shadow: const Shadow(
-                              color: Color.fromARGB(115, 254, 254, 254),
+                            shadow: Shadow(
+                              color: scheme.onSurface.withValues(alpha: 0.15),
                               blurRadius: 4,
                             ),
                             dotData: const FlDotData(show: false),
                           ),
                         ],
-                        backgroundColor: Colors.white30,
+                        backgroundColor:
+                            scheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         borderData: FlBorderData(show: false),
                         titlesData: FlTitlesData(
                           show: true,
@@ -150,11 +170,7 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: Text(
                                       xLabels[index],
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.blueGrey,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: axisTextStyle,
                                     ),
                                   );
                                 }
@@ -176,11 +192,7 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
                               getTitlesWidget: (value, meta) {
                                 return Text(
                                   value.toInt().toString(),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.blueGrey,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: axisTextStyle,
                                 );
                               },
                               interval:
@@ -199,17 +211,15 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
                         gridData: FlGridData(
                           show: true,
                           drawVerticalLine: false,
-                          getDrawingHorizontalLine:
-                              (value) => const FlLine(
-                                color: Colors.grey,
-                                strokeWidth: 0.5,
-                              ),
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: scheme.outlineVariant,
+                            strokeWidth: 0.5,
+                          ),
                         ),
 
                         lineTouchData: LineTouchData(
                           touchTooltipData: LineTouchTooltipData(
-                            getTooltipColor:
-                                (spot) => Colors.blueGrey, // Changed here
+                            getTooltipColor: (spot) => scheme.primary,
                             getTooltipItems: (touchedSpots) {
                               return touchedSpots.map((
                                 LineBarSpot touchedSpot,
@@ -218,7 +228,10 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
                                     chartData.data[touchedSpot.spotIndex];
                                 return LineTooltipItem(
                                   '${originalData.label}\n${touchedSpot.y.toStringAsFixed(1)} ${chartData.metadata.yAxisLabel.split(' ').last}',
-                                  const TextStyle(color: Colors.white),
+                                  TextStyle(
+                                    color: scheme.onPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 );
                               }).toList();
                             },

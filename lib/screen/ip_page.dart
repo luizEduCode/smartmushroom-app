@@ -42,10 +42,9 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: FilledButton.icon(
                 onPressed: () {
                   final ip = _ipController.text.trim();
                   final messenger = ScaffoldMessenger.of(context);
@@ -58,18 +57,8 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
                   _storage.write('server_ip', ip);
                   Navigator.of(context).pop(ip);
                 },
-                icon: const Icon(Icons.save, color: Colors.white, size: 20),
-                label: const Text(
-                  "Salvar IP",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: const Color.fromARGB(255, 76, 175, 80),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                ),
+                icon: const Icon(Icons.save),
+                label: const Text("Salvar IP"),
               ),
             ),
           ],

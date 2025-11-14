@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:smartmushroom_app/constants.dart';
 import 'dart:async';
 import 'home_page.dart';
 
@@ -53,8 +52,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: ScaleTransition(
