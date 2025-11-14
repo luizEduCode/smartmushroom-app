@@ -1,13 +1,21 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
 import 'package:smartmushroom_app/models/chart_data_model.dart';
 
 class TemperatureLinechart extends StatefulWidget {
   final String idLote;
+  final String aggregation;
 
-  const TemperatureLinechart({super.key, required this.idLote});
+  const TemperatureLinechart({
+    super.key,
+    required this.idLote,
+    required this.aggregation,
+  });
 
   @override
   State<TemperatureLinechart> createState() => _TemperatureLinechartState();
@@ -16,6 +24,11 @@ class TemperatureLinechart extends StatefulWidget {
 class _TemperatureLinechartState extends State<TemperatureLinechart> {
   late SalaRemoteDataSource _dataSource;
   late Future<ChartDataModel> _chartDataFuture;
+  final DateFormat _dailyLabelFormat = DateFormat('d MMM', 'pt_BR');
+  final DateFormat _dailyWithTimeFormat = DateFormat('d MMM HH:mm', 'pt_BR');
+  final DateFormat _weeklyLabelFormat = DateFormat('dd/MM', 'pt_BR');
+  final DateFormat _monthlyLabelFormat = DateFormat('MMM yy', 'pt_BR');
+  final DateFormat _hourLabelFormat = DateFormat('HH:mm', 'pt_BR');
 
   @override
   void initState() {
@@ -30,13 +43,17 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
       _chartDataFuture = _dataSource.fetchChartData(
         idLote: widget.idLote,
         metric: 'temperatura',
-        aggregation: 'daily',
+        aggregation: widget.aggregation,
       );
     });
   }
 
-  void refreshChart() {
-    _fetchChartData();
+  @override
+  void didUpdateWidget(covariant TemperatureLinechart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.aggregation != widget.aggregation) {
+      _fetchChartData();
+    }
   }
 
   @override
@@ -113,7 +130,7 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
               double minX = 0;
               double maxX = (spots.length - 1).toDouble();
 
-              List<String> xLabels =
+              final List<String> xLabels =
                   chartData.data.map((e) => e.label).toList();
 
               Color chartColor;
@@ -129,115 +146,119 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
 
               return Column(
                 children: [
-                  Container(
+                  SizedBox(
                     width: double.infinity,
-                    height: 175,
-                    decoration: const BoxDecoration(),
-                    child: LineChart(
-                      LineChartData(
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: spots,
-                            color: chartColor,
-                            barWidth: 3,
-                            isCurved: false,
-                            isStrokeCapRound: true,
-                            isStrokeJoinRound: false,
-                            shadow: Shadow(
-                              color: scheme.onSurface.withValues(alpha: 0.15),
-                              blurRadius: 4,
-                            ),
-                            dotData: const FlDotData(show: false),
-                          ),
-                        ],
-                        backgroundColor:
-                            scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        borderData: FlBorderData(show: false),
-                        titlesData: FlTitlesData(
-                          show: true,
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(),
-                          ),
-                          topTitles: const AxisTitles(sideTitles: SideTitles()),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 30,
-                              getTitlesWidget: (value, meta) {
-                                int index = value.toInt();
-                                if (index >= 0 && index < xLabels.length) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Text(
-                                      xLabels[index],
-                                      style: axisTextStyle,
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                              interval:
-                                  (spots.length > 1)
-                                      ? (spots.length / 5)
-                                          .floor()
-                                          .toDouble()
-                                          .clamp(1, spots.length.toDouble())
-                                      : 1,
-                            ),
-                          ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 40,
-                              getTitlesWidget: (value, meta) {
-                                return Text(
-                                  value.toInt().toString(),
+                    height: 200,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final labelStep = _labelStepForWidth(
+                          constraints.maxWidth,
+                          xLabels.length,
+                        );
+                        final slotWidth = _labelSlotWidth(
+                          constraints.maxWidth,
+                          xLabels.length,
+                          labelStep,
+                        );
+                        return LineChart(
+                          LineChartData(
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: spots,
+                                color: chartColor,
+                                barWidth: 3,
+                                isCurved: false,
+                                isStrokeCapRound: true,
+                                isStrokeJoinRound: false,
+                                shadow: Shadow(
+                                  color: scheme.onSurface.withValues(alpha: 0.15),
+                                  blurRadius: 4,
+                                ),
+                                dotData: const FlDotData(show: false),
+                              ),
+                            ],
+                            backgroundColor:
+                                scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            borderData: FlBorderData(show: false),
+                            titlesData: FlTitlesData(
+                              show: true,
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(),
+                              ),
+                              topTitles: const AxisTitles(sideTitles: SideTitles()),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: _bottomLabelReserve,
+                                  getTitlesWidget: (value, meta) {
+                                    final index = value.toInt();
+                                return _buildBottomTitle(
+                                  index: index,
+                                  labels: xLabels,
                                   style: axisTextStyle,
-                                );
-                              },
-                              interval:
-                                  (maxY > minY)
-                                      ? ((maxY - minY) / 4)
-                                          .ceilToDouble()
-                                          .clamp(1, double.infinity)
-                                      : 1,
+                                  step: labelStep,
+                                  slotWidth: slotWidth,
+                                    );
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 40,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      value.toInt().toString(),
+                                      style: axisTextStyle,
+                                    );
+                                  },
+                                  interval:
+                                      (maxY > minY)
+                                          ? ((maxY - minY) / 4)
+                                              .ceilToDouble()
+                                              .clamp(1, double.infinity)
+                                          : 1,
+                                ),
+                              ),
+                            ),
+                            minX: minX,
+                            maxX: maxX,
+                            minY: minY,
+                            maxY: maxY,
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              getDrawingHorizontalLine: (value) => FlLine(
+                                color: scheme.outlineVariant,
+                                strokeWidth: 0.5,
+                              ),
+                            ),
+                            clipData: const FlClipData.all(),
+                            lineTouchData: LineTouchData(
+                              touchTooltipData: LineTouchTooltipData(
+                                fitInsideHorizontally: true,
+                                fitInsideVertically: true,
+                                getTooltipColor: (spot) => scheme.primary,
+                                getTooltipItems: (touchedSpots) {
+                                  return touchedSpots.map((
+                                    LineBarSpot touchedSpot,
+                                  ) {
+                                    final originalData =
+                                        chartData.data[touchedSpot.spotIndex];
+                                    return LineTooltipItem(
+                                      '${originalData.label}\n${touchedSpot.y.toStringAsFixed(1)} ${chartData.metadata.yAxisLabel.split(' ').last}',
+                                      TextStyle(
+                                        color: scheme.onPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    );
+                                  }).toList();
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                        minX: minX,
-                        maxX: maxX,
-                        minY: minY,
-                        maxY: maxY,
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: false,
-                          getDrawingHorizontalLine: (value) => FlLine(
-                            color: scheme.outlineVariant,
-                            strokeWidth: 0.5,
-                          ),
-                        ),
-
-                        lineTouchData: LineTouchData(
-                          touchTooltipData: LineTouchTooltipData(
-                            getTooltipColor: (spot) => scheme.primary,
-                            getTooltipItems: (touchedSpots) {
-                              return touchedSpots.map((
-                                LineBarSpot touchedSpot,
-                              ) {
-                                final originalData =
-                                    chartData.data[touchedSpot.spotIndex];
-                                return LineTooltipItem(
-                                  '${originalData.label}\n${touchedSpot.y.toStringAsFixed(1)} ${chartData.metadata.yAxisLabel.split(' ').last}',
-                                  TextStyle(
-                                    color: scheme.onPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                );
-                              }).toList();
-                            },
-                          ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -252,5 +273,107 @@ class _TemperatureLinechartState extends State<TemperatureLinechart> {
         ),
       ),
     );
+  }
+
+  Widget _buildBottomTitle({
+    required int index,
+    required List<String> labels,
+    required TextStyle? style,
+    required int step,
+    required double slotWidth,
+  }) {
+    if (index < 0 || index >= labels.length) {
+      return const SizedBox.shrink();
+    }
+
+    final bool isBoundary = index == labels.length - 1;
+    if (!isBoundary && index % step != 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SizedBox(
+        width: slotWidth,
+        child: Text(
+          _formatLabel(labels[index]),
+          style: style,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          softWrap: true,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  int _labelStepForWidth(double width, int labelCount) {
+    if (labelCount <= 1) return 1;
+    const double minSpacing = 72;
+    final maxLabels = math.max(1, (width / minSpacing).floor());
+    final allowedLabels = math.min(labelCount, maxLabels);
+    return math.max(1, (labelCount / allowedLabels).ceil());
+  }
+
+  double _labelSlotWidth(double width, int labelCount, int step) {
+    final visibleLabels = math.max(1, (labelCount / step).ceil());
+    final slot = width / visibleLabels;
+    return slot.clamp(48.0, 90.0);
+  }
+
+  String _formatLabel(String raw) {
+    final normalized = raw.trim();
+    final parsed = DateTime.tryParse(normalized.replaceFirst(' ', 'T'));
+    if (parsed != null) {
+      switch (widget.aggregation) {
+        case 'weekly':
+          return _weeklyLabelFormat.format(parsed);
+        case 'monthly':
+          return _monthlyLabelFormat.format(parsed);
+        case '24h':
+          return _hourLabelFormat.format(parsed);
+        default:
+          final includeTime = normalized.contains(' ') || normalized.contains('T');
+          final format = includeTime ? _dailyWithTimeFormat : _dailyLabelFormat;
+          return format.format(parsed);
+      }
+    }
+
+    if (normalized.contains(' de ')) {
+      final parts = normalized.split(' de ');
+      if (parts.length >= 2) {
+        final day = parts[0].trim();
+        final month = parts[1].split(' ').first;
+        return '$day ${_shortenLabel(month)}';
+      }
+    }
+
+    if (normalized.contains('/')) {
+      final pieces = normalized.split('/');
+      if (pieces.length >= 2) {
+        return '${pieces[0]}/${pieces[1]}';
+      }
+    }
+
+    if (normalized.length > 8) {
+      return '${normalized.substring(0, 7)}…';
+    }
+
+    return normalized;
+  }
+
+  String _shortenLabel(String value) {
+    if (value.length <= 3) return value;
+    return value.substring(0, 3);
+  }
+
+  double get _bottomLabelReserve {
+    if (widget.aggregation == 'weekly' || widget.aggregation == 'monthly') {
+      return 40;
+    }
+    if (widget.aggregation == '24h') {
+      return 52;
+    }
+    return 48;
   }
 }

@@ -13,6 +13,36 @@ import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 
 const double _salaPadding = 16.0;
 
+enum ChartAggregation { last24h, daily, weekly, monthly }
+
+extension ChartAggregationExt on ChartAggregation {
+  String get label {
+    switch (this) {
+      case ChartAggregation.last24h:
+        return '24h';
+      case ChartAggregation.daily:
+        return 'Diário';
+      case ChartAggregation.weekly:
+        return 'Semanal';
+      case ChartAggregation.monthly:
+        return 'Mensal';
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case ChartAggregation.last24h:
+        return '24h';
+      case ChartAggregation.daily:
+        return 'daily';
+      case ChartAggregation.weekly:
+        return 'weekly';
+      case ChartAggregation.monthly:
+        return 'monthly';
+    }
+  }
+}
+
 class SalaPage extends StatelessWidget {
   final String nomeSala;
   final String idLote;
@@ -56,6 +86,8 @@ class _SalaView extends StatefulWidget {
 }
 
 class _SalaViewState extends State<_SalaView> {
+  ChartAggregation _aggregation = ChartAggregation.last24h;
+
   @override
   Widget build(BuildContext context) {
     return Consumer<SalaViewModel>(
@@ -100,14 +132,10 @@ class _SalaViewState extends State<_SalaView> {
 
     final leitura = viewModel.leitura;
     final lote = viewModel.lote;
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool compactButtons = screenWidth < 520;
-    final double buttonWidth = compactButtons
-        ? double.infinity
-        : (screenWidth - _salaPadding * 2 - 24) / 3;
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final bool compactButtons = constraints.maxWidth < 520;
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           clipBehavior: Clip.none,
@@ -256,71 +284,35 @@ class _SalaViewState extends State<_SalaView> {
               }),
             ),
             SizedBox(height: 24),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                SizedBox(
-                  width: buttonWidth,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => EditarParametrosPage(
-                                idLote: int.tryParse(widget.idLote) ?? 0,
-                              ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Editar'),
-                  ),
-                ),
-                SizedBox(
-                  width: buttonWidth,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      minimumSize: const Size(0, 48),
-                    ),
-                    onPressed: () => _showFinalizeDialog(context),
-                    icon: const Icon(Icons.flag),
-                    label: const Text('Finalizar'),
-                  ),
-                ),
-                SizedBox(
-                  width: buttonWidth,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                      minimumSize: const Size(0, 48),
-                    ),
-                    onPressed: () => _showExcluirDialog(context),
-                    icon: const Icon(Icons.delete),
-                    label: const Text('Excluir'),
-                  ),
-                ),
-              ],
-            ),
+            _buildActionButtons(context, compactButtons),
             SizedBox(height: 24),
+            _buildAggregationToggle(context),
+            SizedBox(height: 16),
             _buildChartSection(
               context,
               'Temperatura',
-              TemperatureLinechart(idLote: widget.idLote),
+              TemperatureLinechart(
+                idLote: widget.idLote,
+                aggregation: _aggregation.apiValue,
+              ),
             ),
             SizedBox(height: 20),
             _buildChartSection(
               context,
               'Umidade',
-              HumidityLinechart(idLote: widget.idLote),
+              HumidityLinechart(
+                idLote: widget.idLote,
+                aggregation: _aggregation.apiValue,
+              ),
             ),
             SizedBox(height: 20),
             _buildChartSection(
               context,
-              'Co²',
-              Co2Linechart(idLote: widget.idLote),
+              'CO?',
+              Co2Linechart(
+                idLote: widget.idLote,
+                aggregation: _aggregation.apiValue,
+              ),
             ),
             SizedBox(height: 16),
           ],
@@ -490,6 +482,77 @@ class _SalaViewState extends State<_SalaView> {
     );
   }
 
+  Widget _buildActionButtons(BuildContext context, bool compact) {
+    final theme = Theme.of(context);
+    final buttons = <Widget>[
+      OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => EditarParametrosPage(
+                    idLote: int.tryParse(widget.idLote) ?? 0,
+                  ),
+            ),
+          );
+        },
+        icon: const Icon(Icons.edit),
+        label: const Text('Editar'),
+      ),
+      FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: theme.colorScheme.primary,
+          minimumSize: const Size(0, 48),
+        ),
+        onPressed: () => _showFinalizeDialog(context),
+        icon: const Icon(Icons.flag),
+        label: const Text('Finalizar'),
+      ),
+      FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: theme.colorScheme.error,
+          minimumSize: const Size(0, 48),
+        ),
+        onPressed: () => _showExcluirDialog(context),
+        icon: const Icon(Icons.delete),
+        label: const Text('Excluir'),
+      ),
+    ];
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (int i = 0; i < buttons.length; i++)
+            Padding(
+              padding: EdgeInsets.only(bottom: i == buttons.length - 1 ? 0 : 12),
+              child: buttons[i],
+            ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        for (int i = 0; i < buttons.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i == buttons.length - 1 ? 0 : 12),
+              child: buttons[i],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAggregationToggle(BuildContext context) {
+    return _AggregationSelector(
+      selected: _aggregation,
+      onChanged: (value) => setState(() => _aggregation = value),
+    );
+  }
+
   void _showSnack(
     ScaffoldMessengerState messenger,
     ThemeData theme,
@@ -546,5 +609,72 @@ class _SalaViewState extends State<_SalaView> {
       default:
         return 'Atuador';
     }
+  }
+}
+
+class _AggregationSelector extends StatelessWidget {
+  const _AggregationSelector({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final ChartAggregation selected;
+  final ValueChanged<ChartAggregation> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: ChartAggregation.values.map((aggregation) {
+          final bool isSelected = aggregation == selected;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(aggregation),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.all(4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? scheme.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: scheme.primary.withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  aggregation.label,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: isSelected
+                        ? scheme.onPrimary
+                        : scheme.onSurface.withValues(alpha: 0.8),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }
