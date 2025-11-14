@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:smartmushroom_app/core/auth/auth_storage.dart';
+
 import 'home_page.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,10 +19,12 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   Timer? _navigationTimer;
+  late final AuthStorage _authStorage;
 
   @override
   void initState() {
     super.initState();
+    _authStorage = AuthStorage();
 
     _controller = AnimationController(
       vsync: this,
@@ -36,9 +42,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     _navigationTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
+      final hasSession = _authStorage.hasSession;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(
+          builder: (context) =>
+              hasSession ? const HomePage() : const LoginScreen(),
+        ),
       );
     });
   }

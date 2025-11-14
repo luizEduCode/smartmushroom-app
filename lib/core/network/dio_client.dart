@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/config/api_config.dart';
+import 'package:smartmushroom_app/core/network/auth_interceptor.dart';
 
 class DioClient {
   DioClient({Dio? dio}) : _dio = dio ?? _createDefaultDio();
@@ -23,13 +24,14 @@ class DioClient {
       ),
     );
 
-    dio.interceptors.add(
+    dio.interceptors.addAll([
       InterceptorsWrapper(
         onRequest: (options, handler) {
           final baseUrl = ApiConfig.baseUrl;
 
           final path = options.path;
-          final isAbsolute = path.startsWith('http://') || path.startsWith('https://');
+          final isAbsolute =
+              path.startsWith('http://') || path.startsWith('https://');
 
           if (!isAbsolute) {
             options.baseUrl = baseUrl;
@@ -41,7 +43,8 @@ class DioClient {
           handler.next(options);
         },
       ),
-    );
+      AuthInterceptor(),
+    ]);
 
     return dio;
   }

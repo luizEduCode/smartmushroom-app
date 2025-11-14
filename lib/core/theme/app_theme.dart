@@ -32,8 +32,9 @@ class AppTheme {
         isLight ? AppColors.neutralLight : AppColors.neutralDark;
 
     Color blendedSurface(double opacity) {
-      final Color overlay = (isLight ? Colors.white : Colors.black)
-          .withValues(alpha: opacity);
+      final Color overlay = (isLight ? Colors.white : Colors.black).withValues(
+        alpha: opacity,
+      );
       return Color.alphaBlend(overlay, colorScheme.surface);
     }
 
@@ -60,7 +61,7 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: colorScheme.onPrimary),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: blendedSurface(isLight ? 0.85 : 0.2),
         surfaceTintColor: colorScheme.surfaceTint,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

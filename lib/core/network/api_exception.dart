@@ -1,6 +1,6 @@
-// lib/core/network/api_exception.dart
+import 'dart:io';
 
-import 'package:dio/dio.dart'; // <<< Adicione esta importação para DioException
+import 'package:dio/dio.dart';
 
 class ApiException implements Exception {
   ApiException(this.message, {this.statusCode});
@@ -8,52 +8,65 @@ class ApiException implements Exception {
   final String message;
   final int? statusCode;
 
-  // Adicione este construtor de fábrica
   factory ApiException.fromDioError(DioException dioError) {
     String errorMessage = 'Ocorreu um erro inesperado.';
     int? errorStatusCode;
 
-    // Se houver uma resposta do servidor
+    final Object? rawError = dioError.error;
+    if (rawError is SocketException) {
+      return ApiException(
+        'Nao foi possivel conectar ao servidor. Verifique sua internet e o IP configurado.',
+        statusCode: dioError.response?.statusCode,
+      );
+    }
+
     if (dioError.response != null) {
       errorStatusCode = dioError.response!.statusCode;
 
-      // Tenta extrair a mensagem de erro do corpo da resposta JSON
-      // Presumindo que a API retorne um JSON como {"message": "..."} ou {"error": "..."}
       if (dioError.response!.data is Map<String, dynamic>) {
         final responseData = dioError.response!.data as Map<String, dynamic>;
-        if (responseData.containsKey('message') && responseData['message'] is String) {
-          errorMessage = responseData['message'] as String;
-        } else if (responseData.containsKey('error') && responseData['error'] is String) {
-          errorMessage = responseData['error'] as String;
+        final message = responseData['message'] ?? responseData['error'];
+        if (message is String && message.isNotEmpty) {
+          errorMessage = message;
         } else {
-          // Fallback para status message se não encontrar message/error no JSON
           errorMessage = dioError.response!.statusMessage ?? 'Erro no servidor';
         }
       } else {
-        // Se a resposta não for um JSON ou estiver vazia
         errorMessage = dioError.response!.statusMessage ?? 'Erro no servidor';
       }
-    }
-    // Lidar com diferentes tipos de DioException
-    else {
+    } else {
       switch (dioError.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          errorMessage = 'Tempo limite de conexão excedido. Verifique sua conexão com a internet.';
+          errorMessage =
+              'Tempo limite excedido. Verifique sua conexao com a internet.';
           break;
-        case DioExceptionType.badResponse: // Erros 4xx, 5xx já foram tratados acima, mas para garantir
-          errorMessage = 'Requisição inválida (código: ${dioError.response?.statusCode ?? 'N/A'}).';
+        case DioExceptionType.badResponse:
+          errorMessage =
+              'Requisicao invalida (codigo: ${dioError.response?.statusCode ?? 'N/A'}).';
           break;
         case DioExceptionType.cancel:
-          errorMessage = 'A requisição foi cancelada.';
+          errorMessage = 'A requisicao foi cancelada.';
           break;
         case DioExceptionType.connectionError:
-          errorMessage = 'Falha de conexão. Verifique sua conexão com a internet.';
+          errorMessage =
+              'Falha de conexao. Verifique sua internet e tente novamente.';
           break;
         case DioExceptionType.unknown:
         default:
-          errorMessage = 'Erro desconhecido: ${dioError.message ?? 'Verifique sua conexão.'}';
+          final message = dioError.message ?? '';
+          final bool isHostLookup = message.contains('Failed host lookup');
+          final bool isNetworkUnreachable =
+              message.contains('Network is unreachable');
+          if (isHostLookup || isNetworkUnreachable) {
+            errorMessage =
+                'Nao foi possivel conectar ao servidor. Confirme a internet e o IP configurado.';
+          } else if (message.isNotEmpty) {
+            errorMessage = message;
+          } else {
+            errorMessage = 'Erro desconhecido. Verifique sua conexao.';
+          }
           break;
       }
     }
