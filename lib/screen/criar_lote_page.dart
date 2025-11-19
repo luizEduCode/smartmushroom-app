@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/criar_lote/data/criar_lote_remote_datasource.dart';
-import 'package:smartmushroom_app/models/Antigas/fases_cultivo_model.dart';
 import 'package:smartmushroom_app/models/Antigas/cogumelos_model.dart';
+import 'package:smartmushroom_app/models/Antigas/fases_cultivo_model.dart';
 import 'package:smartmushroom_app/models/Antigas/salas_disponiveis_model.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
+
+const double _pagePadding = 20.0;
 
 class CriarLotePage extends StatefulWidget {
   const CriarLotePage({super.key});
@@ -18,6 +20,8 @@ class CriarLotePage extends StatefulWidget {
 
 class _CriarLotePageState extends State<CriarLotePage> {
   late final CriarLoteRemoteDataSource _dataSource;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   List<SalaDisponivel> _salasFinalizadas = [];
   SalaDisponivel? _selectedSala;
   bool _loadingSalas = true;
@@ -31,6 +35,8 @@ class _CriarLotePageState extends State<CriarLotePage> {
   bool _loadingPhases = true;
   String? _erroMushrooms;
   String? _erroPhases;
+
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -48,25 +54,29 @@ class _CriarLotePageState extends State<CriarLotePage> {
 
     try {
       final salas = await _dataSource.fetchSalasDisponiveis();
+      final selectedId = _selectedSala?.idSala;
       if (mounted) {
         setState(() {
           _salasFinalizadas = salas;
+          _selectedSala =
+              selectedId == null
+                  ? null
+                  : _firstWhereOrNull(
+                    salas,
+                    (sala) => sala.idSala == selectedId,
+                  );
         });
       }
     } on ApiException catch (e) {
       if (mounted) {
-        setState(() {
-          _erroSalas = e.message;
-        });
+        setState(() => _erroSalas = e.message);
       } else {
         _erroSalas = e.message;
       }
     } catch (e) {
       final mensagem = 'Falha ao carregar salas: $e';
       if (mounted) {
-        setState(() {
-          _erroSalas = mensagem;
-        });
+        setState(() => _erroSalas = mensagem);
       } else {
         _erroSalas = mensagem;
       }
@@ -83,25 +93,29 @@ class _CriarLotePageState extends State<CriarLotePage> {
 
     try {
       final cogumelosList = await _dataSource.fetchCogumelos();
+      final selectedId = _selectedMushroom?.idCogumelo;
       if (mounted) {
         setState(() {
           _mushroomTypes = cogumelosList;
+          _selectedMushroom =
+              selectedId == null
+                  ? null
+                  : _firstWhereOrNull(
+                    cogumelosList,
+                    (cogumelo) => cogumelo.idCogumelo == selectedId,
+                  );
         });
       }
     } on ApiException catch (e) {
       if (mounted) {
-        setState(() {
-          _erroMushrooms = e.message;
-        });
+        setState(() => _erroMushrooms = e.message);
       } else {
         _erroMushrooms = e.message;
       }
     } catch (e) {
       final mensagem = 'Falha ao carregar cogumelos: $e';
       if (mounted) {
-        setState(() {
-          _erroMushrooms = mensagem;
-        });
+        setState(() => _erroMushrooms = mensagem);
       } else {
         _erroMushrooms = mensagem;
       }
@@ -122,25 +136,29 @@ class _CriarLotePageState extends State<CriarLotePage> {
       final fases = await _dataSource.fetchFasesPorCogumelo(
         _selectedMushroom!.idCogumelo,
       );
+      final selectedId = _selectedPhase?.idFaseCultivo;
       if (mounted) {
         setState(() {
           _cultivationPhases = fases;
+          _selectedPhase =
+              selectedId == null
+                  ? null
+                  : _firstWhereOrNull(
+                    fases,
+                    (fase) => fase.idFaseCultivo == selectedId,
+                  );
         });
       }
     } on ApiException catch (e) {
       if (mounted) {
-        setState(() {
-          _erroPhases = e.message;
-        });
+        setState(() => _erroPhases = e.message);
       } else {
         _erroPhases = e.message;
       }
     } catch (e) {
       final mensagem = 'Falha ao carregar fases: $e';
       if (mounted) {
-        setState(() {
-          _erroPhases = mensagem;
-        });
+        setState(() => _erroPhases = mensagem);
       } else {
         _erroPhases = mensagem;
       }
@@ -149,21 +167,34 @@ class _CriarLotePageState extends State<CriarLotePage> {
     }
   }
 
+  Future<void> _refreshAll() async {
+    await Future.wait([
+      _carregarSalasFinalizadas(),
+      _carregarTiposCogumelos(),
+      if (_selectedMushroom != null) _carregarFasesCultivo(),
+    ]);
+  }
+
   Future<void> _criarLote() async {
-    if (_selectedSala == null ||
-        _selectedMushroom == null ||
-        _selectedPhase == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Preencha todos os campos')));
+    if (_isSubmitting) return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      _showSnack('Preencha todas as informações para continuar.');
       return;
     }
 
-    try {
-      final now = DateTime.now();
-      final dataInicio =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    if (_selectedSala == null ||
+        _selectedMushroom == null ||
+        _selectedPhase == null) {
+      _showSnack('Preencha todos os campos!');
+      return;
+    }
 
+    final agora = DateTime.now();
+    final dataInicio =
+        '${agora.year}-${agora.month.toString().padLeft(2, '0')}-${agora.day.toString().padLeft(2, '0')}';
+
+    try {
+      setState(() => _isSubmitting = true);
       final idLote = await _dataSource.criarLote(
         idSala: _selectedSala!.idSala,
         idCogumelo: _selectedMushroom!.idCogumelo,
@@ -171,135 +202,135 @@ class _CriarLotePageState extends State<CriarLotePage> {
         dataInicio: dataInicio,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Lote criado com sucesso!')),
-        );
+      if (!mounted) return;
+      _showSnack('Lote criado com sucesso!', isError: false);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => SalaPage(
-                  idLote: idLote.isNotEmpty ? idLote : '0',
-                  nomeSala: _selectedSala!.nomeSala,
-                ),
-          ),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => SalaPage(
+                idLote: idLote.isNotEmpty ? idLote : '0',
+                nomeSala: _selectedSala!.nomeSala,
+              ),
+        ),
+      );
     } on ApiException catch (e) {
       debugPrint('Erro: ${e.message}');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao criar lote: ${e.message}')),
-        );
+        _showSnack('Erro ao criar lote: ${e.message}', isError: true);
       }
     } catch (e) {
       debugPrint('Erro: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao criar lote: ${e.toString()}')),
-        );
+        _showSnack('Erro ao criar lote: ${e.toString()}', isError: true);
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: const CustomAppBar(title: 'Criar Novo Lote'),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _refreshAll,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(_pagePadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Crie um novo lote selecionando sala, cogumelo e fase.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.75),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Center(
-                      child: Text(
-                        'Dados do Lote',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                const SizedBox(height: 16),
+                Form(
+                  key: _formKey,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildSalaDropdown(),
-                    const SizedBox(height: 16),
-                    _buildCogumeloDropdown(),
-                    const SizedBox(height: 16),
-                    _buildFaseDropdown(),
-                  ],
+                    child: Column(
+                      children: [
+                        _buildSalaDropdown(context),
+                        const SizedBox(height: 20),
+                        _buildCogumeloDropdown(context),
+                        const SizedBox(height: 20),
+                        _buildFaseDropdown(context),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _isSubmitting ? null : _criarLote,
+                    icon:
+                        _isSubmitting
+                            ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  theme.colorScheme.onPrimary,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.save),
+                    label: Text(_isSubmitting ? 'Criando lote...' : 'Criar lote'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _criarLote,
-                icon: const Icon(Icons.save, color: Colors.white, size: 20),
-                label: const Text(
-                  "Criar Lote",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: const Color.fromARGB(255, 76, 175, 80),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSalaDropdown() {
+  Widget _buildSalaDropdown(BuildContext context) {
     if (_loadingSalas) {
-      return const Column(
-        children: [
-          LinearProgressIndicator(),
-          SizedBox(height: 8),
-          Text('Carregando salas...', style: TextStyle(color: Colors.grey)),
-        ],
-      );
+      return _buildLoadingState('Carregando salas disponíveis...');
     }
 
     if (_erroSalas != null) {
-      return Text(
-        _erroSalas!,
-        style: const TextStyle(color: Colors.red, fontSize: 16),
-        textAlign: TextAlign.center,
-      );
+      return _buildErrorState(_erroSalas!);
     }
 
     if (_salasFinalizadas.isEmpty) {
-      return const Text(
-        'Nenhuma sala disponível',
-        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-        textAlign: TextAlign.center,
+      return _buildInfoState(
+        'Nenhuma sala disponível para novos lotes no momento.',
       );
     }
 
     return DropdownButtonFormField<SalaDisponivel>(
-      decoration: const InputDecoration(
-        labelText: 'Sala Disponível',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.meeting_room),
+      decoration: _inputDecoration(
+        context,
+        label: 'Sala disponível',
+        icon: Icons.meeting_room_outlined,
       ),
-      value: _selectedSala,
+      initialValue : _selectedSala,
       items:
           _salasFinalizadas.map((sala) {
             return DropdownMenuItem<SalaDisponivel>(
@@ -308,44 +339,33 @@ class _CriarLotePageState extends State<CriarLotePage> {
             );
           }).toList(),
       onChanged: (value) => setState(() => _selectedSala = value),
-      hint: const Text("Selecione uma sala"),
+      validator: (value) => value == null ? 'Selecione uma sala.' : null,
+      hint: const Text('Selecione uma sala'),
     );
   }
 
-  Widget _buildCogumeloDropdown() {
+  Widget _buildCogumeloDropdown(BuildContext context) {
     if (_loadingMushrooms) {
-      return const Column(
-        children: [
-          LinearProgressIndicator(),
-          SizedBox(height: 8),
-          Text('Carregando cogumelos...', style: TextStyle(color: Colors.grey)),
-        ],
-      );
+      return _buildLoadingState('Carregando catálogo de cogumelos...');
     }
 
     if (_erroMushrooms != null) {
-      return Text(
-        _erroMushrooms!,
-        style: const TextStyle(color: Colors.red),
-        textAlign: TextAlign.center,
-      );
+      return _buildErrorState(_erroMushrooms!);
     }
 
     if (_mushroomTypes.isEmpty) {
-      return const Text(
-        'Nenhum cogumelo disponível',
-        style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-        textAlign: TextAlign.center,
+      return _buildInfoState(
+        'Nenhum cogumelo disponível. Atualize ou tente novamente mais tarde.',
       );
     }
 
     return DropdownButtonFormField<Cogumelos>(
-      decoration: const InputDecoration(
-        labelText: 'Tipo de Cogumelo',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.eco),
+      decoration: _inputDecoration(
+        context,
+        label: 'Tipo de cogumelo',
+        icon: Icons.eco_outlined,
       ),
-      value: _selectedMushroom,
+      initialValue : _selectedMushroom,
       items:
           _mushroomTypes.map((cogumelo) {
             return DropdownMenuItem<Cogumelos>(
@@ -361,60 +381,39 @@ class _CriarLotePageState extends State<CriarLotePage> {
         });
         _carregarFasesCultivo();
       },
-      hint: const Text("Selecione um cogumelo"),
+      validator: (value) => value == null ? 'Selecione um cogumelo.' : null,
+      hint: const Text('Selecione um cogumelo'),
     );
   }
 
-  Widget _buildFaseDropdown() {
+  Widget _buildFaseDropdown(BuildContext context) {
     if (_selectedMushroom == null) {
-      return const Text(
-        "Primeiro selecione um cogumelo!",
-        style: TextStyle(
-          color: Colors.red,
-          fontStyle: FontStyle.italic,
-          fontSize: 16,
-        ),
-        textAlign: TextAlign.center,
+      return _buildInfoState(
+        'Primeiro selecione um cogumelo para liberar as fases de cultivo.',
       );
     }
 
     if (_loadingPhases) {
-      return const Column(
-        children: [
-          LinearProgressIndicator(),
-          SizedBox(height: 8),
-          Text('Carregando fases...', style: TextStyle(color: Colors.grey)),
-        ],
-      );
+      return _buildLoadingState('Carregando fases disponíveis...');
     }
 
     if (_erroPhases != null) {
-      return Text(
-        _erroPhases!,
-        style: const TextStyle(color: Colors.red),
-        textAlign: TextAlign.center,
-      );
+      return _buildErrorState(_erroPhases!);
     }
 
     if (_cultivationPhases.isEmpty) {
-      return const Text(
-        'Nenhuma fase disponível para este cogumelo escolha outro!',
-        style: TextStyle(
-          color: Colors.red,
-          fontStyle: FontStyle.italic,
-          fontSize: 16,
-        ),
-        textAlign: TextAlign.center,
+      return _buildInfoState(
+        'Nenhuma fase disponível para o cogumelo selecionado. Escolha outra espécie.',
       );
     }
 
     return DropdownButtonFormField<fases_cultivo>(
-      decoration: const InputDecoration(
-        labelText: 'Fase de Cultivo',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.timeline),
+      decoration: _inputDecoration(
+        context,
+        label: 'Fase de cultivo',
+        icon: Icons.timeline,
       ),
-      value: _selectedPhase,
+      initialValue : _selectedPhase,
       items:
           _cultivationPhases.map((fase) {
             return DropdownMenuItem<fases_cultivo>(
@@ -423,7 +422,74 @@ class _CriarLotePageState extends State<CriarLotePage> {
             );
           }).toList(),
       onChanged: (value) => setState(() => _selectedPhase = value),
-      hint: const Text("Selecione uma fase"),
+      validator: (value) => value == null ? 'Selecione uma fase.' : null,
+      hint: const Text('Selecione uma fase'),
+    );
+  }
+
+  InputDecoration _inputDecoration(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: scheme.surfaceVariant.withOpacity(0.35),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(String message) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const LinearProgressIndicator(),
+        const SizedBox(height: 8),
+        Text(message, style: const TextStyle(color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Text(
+      message,
+      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+      textAlign: TextAlign.start,
+    );
+  }
+
+  Widget _buildInfoState(String message) {
+    return Text(
+      message,
+      style: const TextStyle(
+        color: Colors.grey,
+        fontStyle: FontStyle.italic,
+      ),
+      textAlign: TextAlign.start,
+    );
+  }
+
+  T? _firstWhereOrNull<T>(Iterable<T> items, bool Function(T item) predicate) {
+    for (final item in items) {
+      if (predicate(item)) return item;
+    }
+    return null;
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 }
