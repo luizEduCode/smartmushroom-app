@@ -11,6 +11,7 @@ class SalaCard extends StatelessWidget {
   final String umidade;
   final String co2;
   final String status;
+  final Map<int, bool> atuadoresStatus;
 
   const SalaCard({
     super.key,
@@ -23,6 +24,7 @@ class SalaCard extends StatelessWidget {
     required this.umidade,
     required this.co2,
     required this.status,
+    required this.atuadoresStatus,
     required String idSala, // novo parâmetro
   });
 
@@ -88,12 +90,23 @@ class SalaCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
-                        children: [
-                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
-                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
-                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
-                          Icon(Icons.lightbulb, size: 22, color: foregroundColor),
-                        ],
+                        children: List.generate(4, (index) {
+                          final idAtuador = index + 1;
+                          final bool isAtivo =
+                              atuadoresStatus[idAtuador] ?? false;
+                          final Color iconColor =
+                              isAtivo
+                                  ? foregroundColor
+                                  : foregroundColor.withValues(alpha: 0.35);
+                          return Padding(
+                            padding: EdgeInsets.only(left: index == 0 ? 0 : 4),
+                            child: Icon(
+                              _getAtuadorIcon(idAtuador),
+                              size: 22,
+                              color: iconColor,
+                            ),
+                          );
+                        }),
                       ),
 
                       Text(
@@ -202,5 +215,20 @@ class SalaCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static IconData _getAtuadorIcon(int idAtuador) {
+    switch (idAtuador) {
+      case 1:
+        return Icons.water_drop;
+      case 2:
+        return Icons.thermostat_outlined;
+      case 3:
+        return Icons.air;
+      case 4:
+        return Icons.light_mode;
+      default:
+        return Icons.smart_button;
+    }
   }
 }

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/painel_salas/data/painel_salas_remote_datasource.dart';
+import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
 import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_card.dart';
@@ -17,7 +19,9 @@ class PainelSalasPage extends StatefulWidget {
 class _PainelSalasPageState extends State<PainelSalasPage> {
   late Timer _timer;
   late final PainelSalasRemoteDataSource _dataSource;
+  late final SalaRemoteDataSource _salaRemoteDataSource;
   List<Salas> _salas = [];
+  Map<int, Map<int, bool>> _atuadoresStatus = {};
   bool _isLoading = true;
   bool _hasError = false;
   String? _errorMessage;
@@ -26,6 +30,7 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
   void initState() {
     super.initState();
     _dataSource = PainelSalasRemoteDataSource(DioClient());
+    _salaRemoteDataSource = SalaRemoteDataSource(DioClient());
     fetchSalas();
 
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
@@ -42,10 +47,12 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
   Future<void> fetchSalas() async {
     try {
       final salas = await _dataSource.fetchSalas();
+      final atuadores = await _fetchAtuadoresStatus(salas);
 
       if (mounted) {
         setState(() {
           _salas = salas;
+          _atuadoresStatus = atuadores;
           _isLoading = false;
           _hasError = false;
           _errorMessage = null;
@@ -136,12 +143,14 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
                               lote?.nomeCogumelo ?? 'Nenhum lote ativo',
                           faseCultivo:
                               lote?.nomeFaseCultivo?.toString() ?? '--',
-                          dataInicio: lote?.dataInicio ?? '--',
+                          dataInicio: _formatDate(lote?.dataInicio),
                           idLote: lote?.idLote?.toString() ?? '0',
                           temperatura: lote?.temperatura?.toString() ?? '--',
                           umidade: lote?.umidade?.toString() ?? '--',
                           co2: lote?.co2?.toString() ?? '--',
                           status: lote?.status ?? 'inativo',
+                          atuadoresStatus:
+                              _atuadoresStatus[lote?.idLote] ?? const <int, bool>{},
                           idSala: sala.idSala?.toString() ?? '0',
                         ),
                       );
@@ -161,5 +170,44 @@ class _PainelSalasPageState extends State<PainelSalasPage> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
+  }
+
+  String _formatDate(dynamic value) {
+    if (value == null) return '--';
+    final text = value.toString();
+    if (text.isEmpty || text == '--') return '--';
+    final parsed = DateTime.tryParse(text);
+    if (parsed == null) return text;
+    return DateFormat('dd/MM/yyyy').format(parsed);
+  }
+
+  Future<Map<int, Map<int, bool>>> _fetchAtuadoresStatus(
+    List<Salas> salas,
+  ) async {
+    final Map<int, Map<int, bool>> resultado = {};
+    final futures = <Future<void>>[];
+
+    for (final sala in salas) {
+      final lote = _getPrimeiroLoteAtivo(sala);
+      final idLote = lote?.idLote;
+      if (idLote == null) continue;
+
+      futures.add(
+        _salaRemoteDataSource
+            .fetchControleAtuadores(idLote.toString())
+            .then((registros) {
+          resultado[idLote] = {
+            for (final registro in registros)
+              registro.idAtuador:
+                  registro.statusAtuador.toLowerCase() == 'ativo',
+          };
+        }).catchError((error) {
+          debugPrint('Erro ao buscar atuadores do lote $idLote: $error');
+        }),
+      );
+    }
+
+    await Future.wait(futures);
+    return resultado;
   }
 }
