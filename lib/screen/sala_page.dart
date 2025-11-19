@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:smartmushroom_app/core/network/api_exception.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/sala/data/sala_remote_datasource.dart';
@@ -154,7 +155,10 @@ class _SalaViewState extends State<_SalaView> {
                           children: [
                             _buildInfoItem('Cogumelo', lote?.nomeCogumelo),
                             SizedBox(height: _salaPadding / 2),
-                            _buildInfoItem('Data Início', lote?.dataInicio),
+                            _buildInfoItem(
+                              'Data Início',
+                              _formatDate(lote?.dataInicio),
+                            ),
                             SizedBox(height: _salaPadding / 2),
                             _buildInfoItem('Lote', lote?.idLote),
                             SizedBox(height: _salaPadding / 2),
@@ -425,6 +429,16 @@ class _SalaViewState extends State<_SalaView> {
         Text(value?.toString() ?? '--', style: const TextStyle(fontSize: 16)),
       ],
     );
+  }
+
+  String? _formatDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) {
+      return DateFormat('dd/MM/yyyy').format(value);
+    }
+    final parsed = DateTime.tryParse(value.toString());
+    if (parsed == null) return value.toString();
+    return DateFormat('dd/MM/yyyy').format(parsed);
   }
 
   Widget _buildChartSection(BuildContext context, String title, Widget chart) {

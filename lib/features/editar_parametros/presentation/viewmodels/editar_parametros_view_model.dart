@@ -28,10 +28,7 @@ class Ranges {
 }
 
 class EditarParametrosViewModel extends ChangeNotifier {
-  EditarParametrosViewModel({
-    required this.remote,
-    required this.idLote,
-  });
+  EditarParametrosViewModel({required this.remote, required this.idLote});
 
   final EditarParametrosRemote remote;
   final int idLote;
@@ -60,13 +57,8 @@ class EditarParametrosViewModel extends ChangeNotifier {
   double? _spUmid;
   double? _spCo2;
 
-  Ranges get _fallbackRanges => const Ranges(
-        tMin: 0,
-        tMax: 0,
-        uMin: 0,
-        uMax: 0,
-        co2Max: 0,
-      );
+  Ranges get _fallbackRanges =>
+      const Ranges(tMin: 0, tMax: 0, uMin: 0, uMax: 0, co2Max: 0);
 
   Ranges get activeRanges => _ranges ?? _fasePadrao ?? _fallbackRanges;
   Ranges get defaultRanges => _fasePadrao ?? _ranges ?? _fallbackRanges;
@@ -92,7 +84,7 @@ class EditarParametrosViewModel extends ChangeNotifier {
     if (data == null || data.isEmpty) return '--';
     final parsed = DateTime.tryParse(data);
     if (parsed == null) return '--';
-    return DateFormat('d \'de\' MMMM \'de\' y', 'pt_BR').format(parsed);
+    return DateFormat('dd/MM/yyyy', 'pt_BR').format(parsed);
   }
 
   Future<void> initialize() async {
@@ -107,8 +99,8 @@ class EditarParametrosViewModel extends ChangeNotifier {
       final lote = await remote.getLote(idLote);
       final fases = await remote.getFasesPorCogumelo(lote.idCogumelo ?? 0);
       final faseAtual = await remote.getHistoricoFaseAtual(idLote);
-      final ParametroModel? parametroMaisRecente =
-          await remote.getParametroMaisRecente(idLote);
+      final ParametroModel? parametroMaisRecente = await remote
+          .getParametroMaisRecente(idLote);
 
       final fasePadrao = Ranges(
         tMin: _toDouble(faseAtual.temperaturaMin),
@@ -127,8 +119,9 @@ class EditarParametrosViewModel extends ChangeNotifier {
       );
 
       final DateTime? dHistorico = _parseDateTime(faseAtual.dataMudanca);
-      final DateTime? dParametro =
-          _parseDateTime(parametroMaisRecente?.dataCriacao);
+      final DateTime? dParametro = _parseDateTime(
+        parametroMaisRecente?.dataCriacao,
+      );
       final usarParametros =
           (dParametro != null && dHistorico != null)
               ? dParametro.isAfter(dHistorico)
@@ -240,13 +233,9 @@ class EditarParametrosViewModel extends ChangeNotifier {
         autoTemp ? defaults.tMax : ((_spTemp ?? baseRanges.mediaTemp) + dTemp);
 
     final double uMinPost =
-        autoUmid
-            ? defaults.uMin
-            : ((_spUmid ?? baseRanges.mediaUmid) - dUmid);
+        autoUmid ? defaults.uMin : ((_spUmid ?? baseRanges.mediaUmid) - dUmid);
     final double uMaxPost =
-        autoUmid
-            ? defaults.uMax
-            : ((_spUmid ?? baseRanges.mediaUmid) + dUmid);
+        autoUmid ? defaults.uMax : ((_spUmid ?? baseRanges.mediaUmid) + dUmid);
 
     final double co2MaxPost =
         autoCo2 ? defaults.co2Max : (_spCo2 ?? baseRanges.mediaCo2);

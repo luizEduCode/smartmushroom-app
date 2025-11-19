@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 import 'package:smartmushroom_app/core/auth/auth_storage.dart';
@@ -13,6 +14,11 @@ class AuthInterceptor extends Interceptor {
     final token = _storage.token;
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
+      developer.log(
+        '[Dio] Sending request ${options.method} ${options.uri} '
+        'with headers: ${options.headers}',
+        name: 'AuthInterceptor',
+      );
     }
     super.onRequest(options, handler);
   }

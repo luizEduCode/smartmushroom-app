@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:smartmushroom_app/core/theme/theme_notifier.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final bool centerTitle;
   final bool showBackButton;
-  final bool enableThemeToggle;
+  final bool showMenuButton;
+  final VoidCallback? onMenuPressed;
 
   const CustomAppBar({
     super.key,
@@ -15,7 +14,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.centerTitle = true,
     this.showBackButton = true,
-    this.enableThemeToggle = true,
+    this.showMenuButton = false,
+    this.onMenuPressed,
   });
 
   @override
@@ -27,14 +27,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final Color foregroundColor =
         theme.appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary;
 
+    Widget? leading;
+    if (showMenuButton) {
+      leading = IconButton(
+        icon: Icon(Icons.menu, color: foregroundColor),
+        onPressed: onMenuPressed,
+      );
+    } else if (showBackButton) {
+      leading = IconButton(
+        icon: Icon(Icons.arrow_back, color: foregroundColor),
+        onPressed: () => Navigator.of(context).pop(),
+      );
+    }
+
     return AppBar(
-      leading:
-          showBackButton
-              ? IconButton(
-                icon: Icon(Icons.arrow_back, color: foregroundColor),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-              : null,
+      leading: leading,
       title: Text(
         title,
         style: theme.appBarTheme.titleTextStyle ??
@@ -45,32 +52,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       ),
       centerTitle: centerTitle,
-      actions: [
-        ...?actions,
-        if (enableThemeToggle) const _ThemeToggleButton(),
-      ],
-    );
-  }
-}
-
-class _ThemeToggleButton extends StatelessWidget {
-  const _ThemeToggleButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onPrimary;
-    return Consumer<ThemeViewModel>(
-      builder: (context, themeViewModel, _) {
-        final isDark = themeViewModel.isDarkMode;
-        return IconButton(
-          tooltip: isDark ? 'Alternar para modo claro' : 'Alternar para modo escuro',
-          icon: Icon(
-            isDark ? Icons.light_mode : Icons.dark_mode,
-            color: color,
-          ),
-          onPressed: themeViewModel.toggleTheme,
-        );
-      },
+      actions: actions,
     );
   }
 }

@@ -36,7 +36,7 @@ class DropdownFasesCultivo extends StatelessWidget {
     );
 
     return DropdownButtonFormField<FaseCultivoModel>(
-      value: selected,
+      initialValue: selected,
       icon: Icon(Icons.arrow_drop_down, color: scheme.primary),
       dropdownColor: scheme.surface,
       items:

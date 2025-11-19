@@ -17,9 +17,9 @@ class EditarParametrosPage extends StatelessWidget {
     return ChangeNotifierProvider(
       create:
           (_) => EditarParametrosViewModel(
-                remote: EditarParametrosRemote(DioClient()),
-                idLote: idLote,
-              )..initialize(),
+            remote: EditarParametrosRemote(DioClient()),
+            idLote: idLote,
+          )..initialize(),
       child: const _EditarParametrosView(),
     );
   }
@@ -48,10 +48,7 @@ class _EditarParametrosView extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      viewModel.errorMessage!,
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(viewModel.errorMessage!, textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     FilledButton.icon(
                       onPressed: viewModel.carregar,
@@ -116,9 +113,7 @@ class _EditarParametrosView extends StatelessWidget {
                             )
                             : const Icon(Icons.save),
                     label: Text(
-                      viewModel.isSaving
-                          ? 'Salvando...'
-                          : 'Salvar alterações',
+                      viewModel.isSaving ? 'Salvando...' : 'Salvar alterações',
                     ),
                   ),
                 ),
@@ -140,9 +135,7 @@ class _EditarParametrosView extends StatelessWidget {
       final message = await viewModel.salvar();
       messenger.showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Falha ao salvar: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('Falha ao salvar: $e')));
     }
   }
 
@@ -171,7 +164,6 @@ class _EditarParametrosView extends StatelessWidget {
                         'Lote: ${viewModel.lote?.idLote ?? '--'}',
                         style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: scheme.primary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -180,13 +172,12 @@ class _EditarParametrosView extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: scheme.primaryContainer,
+                              color: scheme.secondaryContainer,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Icon(
-                              Icons.spa,
-                              size: 16,
-                              color: scheme.primary,
+                              Icons.settings,
+                              color: scheme.secondary,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -214,7 +205,11 @@ class _EditarParametrosView extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Icon(Icons.access_time, color: scheme.onPrimary, size: 20),
+                      Icon(
+                        Icons.access_time,
+                        color: scheme.onPrimary,
+                        size: 20,
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         '${viewModel.diasDesdeInicio}',
@@ -323,50 +318,44 @@ class _EditarParametrosView extends StatelessWidget {
     required EditarParametrosViewModel viewModel,
     required ParametroTipo tipo,
   }) {
-    final ranges =
-        switch (tipo) {
-          ParametroTipo.temperatura =>
-            viewModel.autoTemp ? viewModel.defaultRanges : viewModel.activeRanges,
-          ParametroTipo.umidade =>
-            viewModel.autoUmid ? viewModel.defaultRanges : viewModel.activeRanges,
-          ParametroTipo.co2 =>
-            viewModel.autoCo2 ? viewModel.defaultRanges : viewModel.activeRanges,
-        };
+    final ranges = switch (tipo) {
+      ParametroTipo.temperatura =>
+        viewModel.autoTemp ? viewModel.defaultRanges : viewModel.activeRanges,
+      ParametroTipo.umidade =>
+        viewModel.autoUmid ? viewModel.defaultRanges : viewModel.activeRanges,
+      ParametroTipo.co2 =>
+        viewModel.autoCo2 ? viewModel.defaultRanges : viewModel.activeRanges,
+    };
 
-    final controller =
-        switch (tipo) {
-          ParametroTipo.temperatura => viewModel.tempController,
-          ParametroTipo.umidade => viewModel.umidController,
-          ParametroTipo.co2 => viewModel.co2Controller,
-        };
+    final controller = switch (tipo) {
+      ParametroTipo.temperatura => viewModel.tempController,
+      ParametroTipo.umidade => viewModel.umidController,
+      ParametroTipo.co2 => viewModel.co2Controller,
+    };
 
-    final autoMode =
-        switch (tipo) {
-          ParametroTipo.temperatura => viewModel.autoTemp,
-          ParametroTipo.umidade => viewModel.autoUmid,
-          ParametroTipo.co2 => viewModel.autoCo2,
-        };
+    final autoMode = switch (tipo) {
+      ParametroTipo.temperatura => viewModel.autoTemp,
+      ParametroTipo.umidade => viewModel.autoUmid,
+      ParametroTipo.co2 => viewModel.autoCo2,
+    };
 
-    final idealMin =
-        switch (tipo) {
-          ParametroTipo.temperatura => ranges.tMin,
-          ParametroTipo.umidade => ranges.uMin,
-          ParametroTipo.co2 => 0.0,
-        };
+    final idealMin = switch (tipo) {
+      ParametroTipo.temperatura => ranges.tMin,
+      ParametroTipo.umidade => ranges.uMin,
+      ParametroTipo.co2 => 0.0,
+    };
 
-    final idealMax =
-        switch (tipo) {
-          ParametroTipo.temperatura => ranges.tMax,
-          ParametroTipo.umidade => ranges.uMax,
-          ParametroTipo.co2 => ranges.co2Max,
-        };
+    final idealMax = switch (tipo) {
+      ParametroTipo.temperatura => ranges.tMax,
+      ParametroTipo.umidade => ranges.uMax,
+      ParametroTipo.co2 => ranges.co2Max,
+    };
 
-    final initialOverride =
-        switch (tipo) {
-          ParametroTipo.temperatura => viewModel.activeRanges.mediaTemp,
-          ParametroTipo.umidade => viewModel.activeRanges.mediaUmid,
-          ParametroTipo.co2 => viewModel.activeRanges.mediaCo2,
-        };
+    final initialOverride = switch (tipo) {
+      ParametroTipo.temperatura => viewModel.activeRanges.mediaTemp,
+      ParametroTipo.umidade => viewModel.activeRanges.mediaUmid,
+      ParametroTipo.co2 => viewModel.activeRanges.mediaCo2,
+    };
 
     return ParametroCardContainer(
       idLote: viewModel.lote?.idLote?.toString() ?? '',

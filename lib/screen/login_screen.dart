@@ -128,14 +128,23 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
+              Center(
+                child: OutlinedButton.icon(
                   onPressed: _isSubmitting ? null : _openConfigIp,
-                  tooltip: 'Configurar servidor',
                   icon: const Icon(Icons.route_outlined),
+                  label: const Text('Configurar IP do servidor'),
+                  style: OutlinedButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    side: const BorderSide(color: AppColors.accent, width: 1.2),
+                    foregroundColor: AppColors.accent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 16),
               Text(
                 'Bem-vindo de volta',
                 style: theme.textTheme.headlineMedium?.copyWith(
