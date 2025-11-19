@@ -72,9 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isSubmitting = false);
       final userName = session.user?.nome ?? email;
       _showMessage('Bem-vindo, $userName');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
     } on ApiException catch (err) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -82,20 +82,23 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
-      _showMessage('Erro inesperado ao entrar. Tente novamente.', isError: true);
+      _showMessage(
+        'Erro inesperado ao entrar. Tente novamente.',
+        isError: true,
+      );
     }
   }
 
   void _openForgotPassword() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
   }
 
   Future<void> _openConfigIp() async {
-    final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const ConfigIPPage()),
-    );
+    final result = await Navigator.of(
+      context,
+    ).push<String>(MaterialPageRoute(builder: (_) => const ConfigIPPage()));
     if (!mounted) return;
     if (result != null && result.isNotEmpty) {
       _showMessage('IP do servidor atualizado para $result');
@@ -109,8 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor:
-              isError ? Theme.of(context).colorScheme.error : null,
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
         ),
       );
   }
@@ -123,25 +125,18 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
-              Center(
-                child: OutlinedButton.icon(
+               Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
                   onPressed: _isSubmitting ? null : _openConfigIp,
-                  icon: const Icon(Icons.route_outlined),
-                  label: const Text('Configurar IP do servidor'),
-                  style: OutlinedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    side: const BorderSide(color: AppColors.accent, width: 1.2),
-                    foregroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  icon: const Icon(Icons.settings_ethernet_outlined),
+                  tooltip: 'Configurar IP do servidor',
+                  color: AppColors.accent,
+                  iconSize: 26,
                 ),
               ),
               const SizedBox(height: 16),
@@ -205,7 +200,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   : Icons.visibility_off_outlined,
                             ),
                             onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
+                              setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              );
                             },
                           ),
                         ),
@@ -225,13 +222,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Entrar'),
+                        child:
+                            _isSubmitting
+                                ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Text('Entrar'),
                       ),
                     ],
                   ),
@@ -239,22 +239,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
               Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.eco_outlined,
-                      size: 54,
-                      color: AppColors.accent,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'SmartMushroom',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                  ],
+                child: Image.asset(
+                  'assets/logoG.png',
+                  width: 220,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'SmartMushroom',
                 ),
               ),
             ],
