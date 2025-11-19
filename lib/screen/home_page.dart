@@ -1,203 +1,13 @@
-//                       StreamBuilder<String>(
-//                         stream: getCurrentDateTimeStream(),
-//                         builder: (context, snapshot) {
-//                           return Text(
-//                             snapshot.data ?? '',
-//                             style: const TextStyle(
-//                               color: primaryColor,
-//                               fontSize: 18,
-//                               fontWeight: FontWeight.bold,
-//                             ),
-//                           );
-//                         },
-//                       ),
-//                     ],
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: _homePadding),
-//               RefreshIndicator(
-//                 onRefresh: fetchSalas,
-//                 child:
-//                     _isLoading
-//                         ? const Center(child: CircularProgressIndicator())
-//                         : _hasError
-//                         ? const Center(child: Text('Erro ao carregar dados'))
-//                         : GridView.builder(
-//                           shrinkWrap: true,
-//                           physics: const NeverScrollableScrollPhysics(),
-//                           gridDelegate:
-//                               const SliverGridDelegateWithMaxCrossAxisExtent(
-//                                 maxCrossAxisExtent: 200,
-//                                 crossAxisSpacing: _homePadding,
-//                                 childAspectRatio: 1.07,
-//                               ),
-//                           itemCount: _salas.length,
-//                           itemBuilder: (context, index) {
-//                             final sala = _salas[index] as Salas;
-//                             // Exibe um card para cada lote ativo na sala
-//                             return Column(
-//                               children: [
-//                                 ...?sala.lotes?.map(
-//                                   (lote) => GestureDetector(
-//                                     onTap: () {
-//                                       Navigator.push(
-//                                         context,
-//                                         MaterialPageRoute(
-//                                           builder:
-//                                               (context) => SalaPage(
-//                                                 idSala:
-//                                                     sala.idSala?.toString() ??
-//                                                     '0',
-//                                                 idLote:
-//                                                     lote.idLote?.toString() ??
-//                                                     '0',
-//                                                 nomeSala:
-//                                                     sala.nomeSala ?? 'Sem nome',
-//                                               ),
-//                                         ),
-//                                       );
-//                                     },
-//                                     child: SalahomeCard(
-//                                       idLote: lote.idLote?.toString() ?? '0',
-//                                       nomeSala: sala.nomeSala ?? 'Sem nome',
-//                                       nomeCogumelo: lote.nomeCogumelo ?? '',
-//                                       faseCultivo:
-//                                           lote.nomeFaseCultivo?.toString() ??
-//                                           '',
-//                                       temperatura:
-//                                           lote.temperatura?.toString() ?? '--',
-//                                       umidade: lote.umidade?.toString() ?? '--',
-//                                       co2: lote.co2?.toString() ?? '--',
-//                                       status: lote.status ?? '',
-//                                       idCogumelo: lote.idCogumelo ?? 0,
-//                                     ),
-//                                   ),
-//                                 ),
-//                               ],
-//                             );
-//                           },
-//                         ),
-//               ),
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   InkWell(
-//                     onTap: () {
-//                       Navigator.push(
-//                         context,
-//                         MaterialPageRoute(
-//                           builder: (context) => const PainelSalasPage(),
-//                         ),
-//                       );
-//                     },
-//                     child: Container(
-//                       height: 150,
-//                       width: MediaQuery.of(context).size.width * 0.44,
-//                       decoration: BoxDecoration(
-//                         color: primaryColor,
-//                         borderRadius: BorderRadius.circular(20),
-//                         boxShadow: [
-//                           BoxShadow(
-//                             color: Colors.black.withAlpha(100),
-//                             blurRadius: 10,
-//                             spreadRadius: 2,
-//                             offset: const Offset(4, 4),
-//                           ),
-//                         ],
-//                       ),
-//                       child: const Padding(
-//                         padding: EdgeInsets.all(_homePadding),
-//                         child: Column(
-//                           children: [
-//                             Row(
-//                               mainAxisAlignment: MainAxisAlignment.center,
-//                               children: [
-//                                 Icon(
-//                                   Icons.meeting_room_outlined,
-//                                   size: 90,
-//                                   color: Colors.white,
-//                                 ),
-//                               ],
-//                             ),
-//                             Text(
-//                               'Painel Salas',
-//                               style: TextStyle(
-//                                 color: Colors.white,
-//                                 fontWeight: FontWeight.bold,
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                   InkWell(
-//                     onTap: () {
-//                       Navigator.push(
-//                         context,
-//                         MaterialPageRoute(
-//                           builder: (context) => const CriarLotePage(),
-//                         ),
-//                       );
-//                     },
-//                     child: Container(
-//                       height: 150,
-//                       width: MediaQuery.of(context).size.width * 0.44,
-//                       decoration: BoxDecoration(
-//                         color: primaryColor,
-//                         borderRadius: BorderRadius.circular(20),
-//                         boxShadow: [
-//                           BoxShadow(
-//                             color: Colors.black.withAlpha(100),
-//                             blurRadius: 10,
-//                             spreadRadius: 2,
-//                             offset: const Offset(4, 4),
-//                           ),
-//                         ],
-//                       ),
-//                       child: const Padding(
-//                         padding: EdgeInsets.all(_homePadding),
-//                         child: Column(
-//                           children: [
-//                             Row(
-//                               mainAxisAlignment: MainAxisAlignment.center,
-//                               children: [
-//                                 Icon(Icons.add, size: 90, color: Colors.white),
-//                               ],
-//                             ),
-//                             Text(
-//                               'Criar Lote',
-//                               style: TextStyle(
-//                                 color: Colors.white,
-//                                 fontWeight: FontWeight.bold,
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: _homePadding),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'package:smartmushroom_app/core/auth/auth_repository.dart';
 import 'package:smartmushroom_app/core/network/dio_client.dart';
 import 'package:smartmushroom_app/features/home/data/home_remote_datasource.dart';
 import 'package:smartmushroom_app/models/Antigas/salas_lotes_ativos.dart';
 import 'package:smartmushroom_app/screen/criar_lote_page.dart';
-import 'package:smartmushroom_app/screen/ip_page.dart';
 import 'package:smartmushroom_app/screen/painel_salas_page.dart';
+import 'package:smartmushroom_app/screen/widgets/app_menu_drawer.dart';
 import 'package:smartmushroom_app/screen/widgets/custom_app_bar.dart';
 import 'package:smartmushroom_app/screen/widgets/sala_home_card.dart';
 import 'package:smartmushroom_app/screen/sala_page.dart';
@@ -212,6 +22,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late Timer _timer;
   late final HomeRemoteDataSource _dataSource;
   List<Salas> _salas = [];
@@ -260,7 +71,7 @@ class _HomePageState extends State<HomePage> {
     while (true) {
       await Future.delayed(const Duration(seconds: 1));
       final now = DateTime.now();
-      yield DateFormat('dd MMMM yyyy', 'pt_BR').format(now);
+      yield DateFormat('dd/MM/yyyy', 'pt_BR').format(now);
     }
   }
 
@@ -268,26 +79,20 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final onPrimary = colorScheme.onPrimary;
+    final authRepository = AuthRepository();
+    final rawName = authRepository.user?.nome ?? '';
+    final greetingName =
+        rawName.trim().isEmpty ? 'Colaborador' : rawName.trim();
+    final greetingText = 'Olá $greetingName!';
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const AppMenuDrawer(),
       appBar: CustomAppBar(
         title: 'Smartmushroom',
         showBackButton: false,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.route_outlined,
-              color: theme.appBarTheme.foregroundColor ?? onPrimary,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ConfigIPPage()),
-              );
-            },
-          ),
-        ],
+        showMenuButton: true,
+        onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
         onRefresh: fetchSalas,
@@ -301,7 +106,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Olá Colaborador!',
+                      greetingText,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -312,10 +117,8 @@ class _HomePageState extends State<HomePage> {
                       builder: (context, snapshot) {
                         return Text(
                           snapshot.data ?? '',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         );
                       },
                     ),
@@ -328,9 +131,7 @@ class _HomePageState extends State<HomePage> {
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _homePadding,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: _homePadding),
                   child: Column(
                     children: [
                       Expanded(
@@ -438,31 +239,19 @@ Widget _buildActionsRow(BuildContext context) {
           decoration: BoxDecoration(
             color: colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: 10,
-                spreadRadius: 2,
-                offset: const Offset(4, 4),
-              ),
-            ],
           ),
           child: Padding(
             padding: const EdgeInsets.all(_homePadding),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Icon(
-                  Icons.meeting_room_outlined,
-                  size: 80,
-                  color: foreground,
-                ),
+                Icon(Icons.meeting_room_outlined, size: 80, color: foreground),
                 Text(
                   'Painel Salas',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: foreground,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: foreground,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -483,14 +272,6 @@ Widget _buildActionsRow(BuildContext context) {
           decoration: BoxDecoration(
             color: colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: 10,
-                spreadRadius: 2,
-                offset: const Offset(4, 4),
-              ),
-            ],
           ),
           child: Padding(
             padding: const EdgeInsets.all(_homePadding),
@@ -501,9 +282,9 @@ Widget _buildActionsRow(BuildContext context) {
                 Text(
                   'Criar Lote',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: foreground,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: foreground,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

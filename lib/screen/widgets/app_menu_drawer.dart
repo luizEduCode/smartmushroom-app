@@ -13,9 +13,10 @@ class AppMenuDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final bool isSystemDark = theme.brightness == Brightness.dark;
     final authRepository = AuthRepository();
     final rawName = authRepository.user?.nome ?? '';
-    final userName = rawName.trim().isEmpty ? 'Operador' : rawName.trim();
+    final userName = rawName.trim().isEmpty ? 'Batata' : rawName.trim();
     final avatarLabel =
         userName.characters.isNotEmpty
             ? userName.characters.first.toUpperCase()
@@ -53,7 +54,10 @@ class AppMenuDrawer extends StatelessWidget {
                           child: Text(
                             avatarLabel,
                             style: theme.textTheme.titleLarge?.copyWith(
-                              color: colorScheme.primary,
+                              color:
+                                  isSystemDark
+                                      ? Colors.white
+                                      : colorScheme.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -127,11 +131,15 @@ class AppMenuDrawer extends StatelessWidget {
                                   isDarkMode
                                       ? Icons.dark_mode
                                       : Icons.light_mode;
-                              final Color iconColor =
+                              final Color iconColor = colorScheme.primary;
+                              final Color themeCardColor =
                                   isDarkMode
-                                      ? colorScheme.primary
-                                      : colorScheme.tertiary;
+                                      ? colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.9)
+                                      : colorScheme.secondaryContainer
+                                          .withValues(alpha: 0.85);
                               return _MenuCard(
+                                backgroundColor: themeCardColor,
                                 child: Row(
                                   children: [
                                     _IconBadge(
@@ -237,7 +245,6 @@ class AppMenuDrawer extends StatelessWidget {
                     ),
                   ),
                   _MenuCard(
-                    backgroundColor: colorScheme.surfaceContainerLow,
                     onTap: () => _confirmLogout(context),
                     child: Row(
                       children: [
@@ -363,14 +370,10 @@ class _IconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 48,
       width: 48,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Icon(icon, color: color),
+      child: Center(child: Icon(icon, color: color)),
     );
   }
 }
