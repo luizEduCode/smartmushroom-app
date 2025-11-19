@@ -64,19 +64,13 @@ class SalaPage extends StatelessWidget {
             idLote: idLote,
             nomeSala: nomeSala,
           )..initialize(),
-      child: _SalaView(
-        fallbackNomeSala: nomeSala,
-        idLote: idLote,
-      ),
+      child: _SalaView(fallbackNomeSala: nomeSala, idLote: idLote),
     );
   }
 }
 
 class _SalaView extends StatefulWidget {
-  const _SalaView({
-    required this.fallbackNomeSala,
-    required this.idLote,
-  });
+  const _SalaView({required this.fallbackNomeSala, required this.idLote});
 
   final String fallbackNomeSala;
   final String idLote;
@@ -139,184 +133,193 @@ class _SalaViewState extends State<_SalaView> {
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           clipBehavior: Clip.none,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: constraints.maxHeight),
-        child: Padding(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
               padding: const EdgeInsets.all(_salaPadding),
               child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: RingChart(
-                    temperatura: leitura?.temperatura ?? '--',
-                    valor: leitura?.temperaturaNum ?? 0.0,
-                  ),
-                ),
-                SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      _buildInfoItem('Cogumelo', lote?.nomeCogumelo),
-                      SizedBox(height: _salaPadding / 2),
-                      _buildInfoItem('Data Início', lote?.dataInicio),
-                      SizedBox(height: _salaPadding / 2),
-                      _buildInfoItem('Lote', lote?.idLote),
-                      SizedBox(height: _salaPadding / 2),
-                      _buildInfoItem(
-                        'Sala',
-                        lote?.nomeSala ?? widget.fallbackNomeSala,
+                      Expanded(
+                        child: RingChart(
+                          temperatura: leitura?.temperatura ?? '--',
+                          valor: leitura?.temperaturaNum ?? 0.0,
+                        ),
+                      ),
+                      SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildInfoItem('Cogumelo', lote?.nomeCogumelo),
+                            SizedBox(height: _salaPadding / 2),
+                            _buildInfoItem('Data Início', lote?.dataInicio),
+                            SizedBox(height: _salaPadding / 2),
+                            _buildInfoItem('Lote', lote?.idLote),
+                            SizedBox(height: _salaPadding / 2),
+                            _buildInfoItem(
+                              'Sala',
+                              lote?.nomeSala ?? widget.fallbackNomeSala,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  SizedBox(height: 24),
+                  Row(
                     children: [
-                      Text(
-                        'Umidade',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: viewModel.humidityValue,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _getHumidityColor(
-                            Theme.of(context).colorScheme,
-                            leitura?.umidadeNum ?? 0,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      Text('${leitura?.umidade ?? '--'}%'),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Nível CO²',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: viewModel.co2Value,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _getCO2Color(
-                            Theme.of(context).colorScheme,
-                            leitura?.co2Num ?? 0,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      Text('${leitura?.co2 ?? '--'}ppm'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(4, (index) {
-                final idAtuador = index + 1;
-                final isAtivo = viewModel.atuadoresStatus[idAtuador] ?? false;
-                final buttonColor = isAtivo
-                    ? Theme.of(context).colorScheme.tertiary
-                    : Theme.of(context).colorScheme.secondary;
-                final onPrimaryColor = Theme.of(context).colorScheme.onPrimary;
-                final iconData = _getAtuadorIcon(idAtuador);
-                final label = _getAtuadorLabel(idAtuador);
-
-                return Column(
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(20),
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
-                      ),
-                      onPressed:
-                          viewModel.isAtuadorLoading
-                              ? null
-                              : () => _handleToggleAtuador(
-                                context,
-                                idAtuador,
-                              ),
-                      child:
-                          viewModel.isAtuadorLoading
-                              ? SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    onPrimaryColor,
-                                  ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Umidade',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: viewModel.humidityValue,
+                              backgroundColor:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                _getHumidityColor(
+                                  Theme.of(context).colorScheme,
+                                  leitura?.umidadeNum ?? 0,
                                 ),
-                              )
-                              : Icon(iconData, color: onPrimaryColor, size: 26),
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text('${leitura?.umidade ?? '--'}%'),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Nível CO²',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: viewModel.co2Value,
+                              backgroundColor:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                _getCO2Color(
+                                  Theme.of(context).colorScheme,
+                                  leitura?.co2Num ?? 0,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text('${leitura?.co2 ?? '--'}ppm'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: List.generate(4, (index) {
+                      final idAtuador = index + 1;
+                      final isAtivo =
+                          viewModel.atuadoresStatus[idAtuador] ?? false;
+                      final buttonColor =
+                          isAtivo
+                              ? Theme.of(context).colorScheme.tertiary
+                              : Theme.of(context).colorScheme.secondary;
+                      final onPrimaryColor =
+                          Theme.of(context).colorScheme.onPrimary;
+                      final iconData = _getAtuadorIcon(idAtuador);
+                      final label = _getAtuadorLabel(idAtuador);
+
+                      return Column(
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: buttonColor,
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(20),
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onPrimary,
+                            ),
+                            onPressed:
+                                viewModel.isAtuadorLoading
+                                    ? null
+                                    : () => _handleToggleAtuador(
+                                      context,
+                                      idAtuador,
+                                    ),
+                            child:
+                                viewModel.isAtuadorLoading
+                                    ? SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        valueColor: AlwaysStoppedAnimation(
+                                          onPrimaryColor,
+                                        ),
+                                      ),
+                                    )
+                                    : Icon(
+                                      iconData,
+                                      color: onPrimaryColor,
+                                      size: 26,
+                                    ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(label, style: const TextStyle(fontSize: 12)),
+                        ],
+                      );
+                    }),
+                  ),
+                  SizedBox(height: 24),
+                  _buildActionButtons(context, compactButtons),
+                  SizedBox(height: 24),
+                  _buildAggregationToggle(context),
+                  SizedBox(height: 16),
+                  _buildChartSection(
+                    context,
+                    'Temperatura',
+                    TemperatureLinechart(
+                      idLote: widget.idLote,
+                      aggregation: _aggregation.apiValue,
                     ),
-                    SizedBox(height: 8),
-                    Text(label, style: const TextStyle(fontSize: 12)),
-                  ],
-                );
-              }),
-            ),
-            SizedBox(height: 24),
-            _buildActionButtons(context, compactButtons),
-            SizedBox(height: 24),
-            _buildAggregationToggle(context),
-            SizedBox(height: 16),
-            _buildChartSection(
-              context,
-              'Temperatura',
-              TemperatureLinechart(
-                idLote: widget.idLote,
-                aggregation: _aggregation.apiValue,
+                  ),
+                  SizedBox(height: 20),
+                  _buildChartSection(
+                    context,
+                    'Umidade',
+                    HumidityLinechart(
+                      idLote: widget.idLote,
+                      aggregation: _aggregation.apiValue,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  _buildChartSection(
+                    context,
+                    'CO?',
+                    Co2Linechart(
+                      idLote: widget.idLote,
+                      aggregation: _aggregation.apiValue,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
               ),
-            ),
-            SizedBox(height: 20),
-            _buildChartSection(
-              context,
-              'Umidade',
-              HumidityLinechart(
-                idLote: widget.idLote,
-                aggregation: _aggregation.apiValue,
-              ),
-            ),
-            SizedBox(height: 20),
-            _buildChartSection(
-              context,
-              'CO?',
-              Co2Linechart(
-                idLote: widget.idLote,
-                aggregation: _aggregation.apiValue,
-              ),
-            ),
-            SizedBox(height: 16),
-          ],
-        ),
             ),
           ),
         );
@@ -324,10 +327,7 @@ class _SalaViewState extends State<_SalaView> {
     );
   }
 
-  Future<void> _handleToggleAtuador(
-    BuildContext context,
-    int idAtuador,
-  ) async {
+  Future<void> _handleToggleAtuador(BuildContext context, int idAtuador) async {
     final viewModel = context.read<SalaViewModel>();
     final messenger = ScaffoldMessenger.of(context);
     final theme = Theme.of(context);
@@ -368,41 +368,6 @@ class _SalaViewState extends State<_SalaView> {
         messenger,
         theme,
         message.isEmpty ? 'Lote finalizado com sucesso!' : message,
-      );
-      navigator.pop();
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      _showSnack(messenger, theme, e.message, isError: true);
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack(messenger, theme, 'Erro: $e', isError: true);
-    }
-  }
-
-  Future<void> _showExcluirDialog(BuildContext context) async {
-    final theme = Theme.of(context);
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final viewModel = context.read<SalaViewModel>();
-
-    final confirmed = await _showConfirmationDialog(
-      context,
-      title: 'Deseja excluir o Lote?',
-      description:
-          'Essa ação removerá definitivamente todos os dados relacionados ao lote.',
-      confirmLabel: 'Excluir',
-      confirmColor: theme.colorScheme.error,
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    try {
-      final message = await viewModel.excluirLote();
-      if (!mounted) return;
-      _showSnack(
-        messenger,
-        theme,
-        message.isEmpty ? 'Lote excluído com sucesso!' : message,
       );
       navigator.pop();
     } on ApiException catch (e) {
@@ -462,19 +427,15 @@ class _SalaViewState extends State<_SalaView> {
     );
   }
 
-  Widget _buildChartSection(
-    BuildContext context,
-    String title,
-    Widget chart,
-  ) {
+  Widget _buildChartSection(BuildContext context, String title, Widget chart) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
         chart,
@@ -484,8 +445,17 @@ class _SalaViewState extends State<_SalaView> {
 
   Widget _buildActionButtons(BuildContext context, bool compact) {
     final theme = Theme.of(context);
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    );
     final buttons = <Widget>[
-      OutlinedButton.icon(
+      FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: theme.colorScheme.secondary,
+          foregroundColor: theme.colorScheme.onSecondary,
+          minimumSize: const Size(0, 48),
+          shape: buttonShape,
+        ),
         onPressed: () {
           Navigator.push(
             context,
@@ -504,19 +474,11 @@ class _SalaViewState extends State<_SalaView> {
         style: FilledButton.styleFrom(
           backgroundColor: theme.colorScheme.primary,
           minimumSize: const Size(0, 48),
+          shape: buttonShape,
         ),
         onPressed: () => _showFinalizeDialog(context),
         icon: const Icon(Icons.flag),
         label: const Text('Finalizar'),
-      ),
-      FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: theme.colorScheme.error,
-          minimumSize: const Size(0, 48),
-        ),
-        onPressed: () => _showExcluirDialog(context),
-        icon: const Icon(Icons.delete),
-        label: const Text('Excluir'),
       ),
     ];
 
@@ -526,7 +488,9 @@ class _SalaViewState extends State<_SalaView> {
         children: [
           for (int i = 0; i < buttons.length; i++)
             Padding(
-              padding: EdgeInsets.only(bottom: i == buttons.length - 1 ? 0 : 12),
+              padding: EdgeInsets.only(
+                bottom: i == buttons.length - 1 ? 0 : 12,
+              ),
               child: buttons[i],
             ),
         ],
@@ -613,10 +577,7 @@ class _SalaViewState extends State<_SalaView> {
 }
 
 class _AggregationSelector extends StatelessWidget {
-  const _AggregationSelector({
-    required this.selected,
-    required this.onChanged,
-  });
+  const _AggregationSelector({required this.selected, required this.onChanged});
 
   final ChartAggregation selected;
   final ValueChanged<ChartAggregation> onChanged;
@@ -630,50 +591,52 @@ class _AggregationSelector extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: scheme.primary.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
-        children: ChartAggregation.values.map((aggregation) {
-          final bool isSelected = aggregation == selected;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(aggregation),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.all(4),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? scheme.primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: scheme.primary.withValues(alpha: 0.25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  aggregation.label,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: isSelected
-                        ? scheme.onPrimary
-                        : scheme.onSurface.withValues(alpha: 0.8),
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+        children:
+            ChartAggregation.values.map((aggregation) {
+              final bool isSelected = aggregation == selected;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(aggregation),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? scheme.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow:
+                          isSelected
+                              ? [
+                                BoxShadow(
+                                  color: scheme.primary.withValues(alpha: 0.25),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                              : null,
+                    ),
+                    child: Text(
+                      aggregation.label,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color:
+                            isSelected
+                                ? scheme.onPrimary
+                                : scheme.onSurface.withValues(alpha: 0.8),
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
   }

@@ -19,6 +19,7 @@ class SalaViewModel extends ChangeNotifier {
 
   Timer? _timer;
   bool _initialized = false;
+  bool _isDisposed = false;
 
   bool isLoading = true;
   bool hasError = false;
@@ -42,7 +43,7 @@ class SalaViewModel extends ChangeNotifier {
   Future<void> loadAll() async {
     isLoading = true;
     hasError = false;
-    notifyListeners();
+    _safeNotifyListeners();
     try {
       await Future.wait([
         _fetchLote(),
@@ -55,18 +56,15 @@ class SalaViewModel extends ChangeNotifier {
       errorMessage = error.toString();
       isLoading = false;
     } finally {
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
   Future<void> refreshRealtime() async {
     try {
-      await Future.wait([
-        _fetchUltimaLeitura(),
-        _fetchAtuadores(),
-      ]);
+      await Future.wait([_fetchUltimaLeitura(), _fetchAtuadores()]);
     } finally {
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -83,9 +81,7 @@ class SalaViewModel extends ChangeNotifier {
     atuadoresStatus = _buildAtuadoresStatus(registros);
   }
 
-  Map<int, bool> _buildAtuadoresStatus(
-    List<ControleAtuadorModel> registros,
-  ) {
+  Map<int, bool> _buildAtuadoresStatus(List<ControleAtuadorModel> registros) {
     final Map<int, ControleAtuadorModel> latest = {};
     for (final registro in registros) {
       final id = registro.idAtuador;
@@ -102,10 +98,8 @@ class SalaViewModel extends ChangeNotifier {
     }
 
     return latest.map(
-      (id, model) => MapEntry(
-        id,
-        (model.statusAtuador).toLowerCase() == 'ativo',
-      ),
+      (id, model) =>
+          MapEntry(id, (model.statusAtuador).toLowerCase() == 'ativo'),
     );
   }
 
@@ -116,7 +110,7 @@ class SalaViewModel extends ChangeNotifier {
 
     isAtuadorLoading = true;
     atuadoresStatus[idAtuador] = novo;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await dataSource.alterarStatusAtuador(
@@ -130,23 +124,33 @@ class SalaViewModel extends ChangeNotifier {
       rethrow;
     } finally {
       isAtuadorLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
-  Future<String> finalizarLote() => dataSource.finalizarLote(idLote);
+  Future<String> finalizarLote() async {
+    final response = await dataSource.finalizarLote(idLote);
+    debugPrint('[SalaViewModel] Finalizar lote ($idLote) -> $response');
+    return response;
+  }
 
   Future<String> excluirLote() => dataSource.excluirLote(idLote);
 
-  double get humidityValue =>
-      (leitura?.umidadeNum ?? 0).clamp(0, 100) / 100.0;
+  double get humidityValue => (leitura?.umidadeNum ?? 0).clamp(0, 100) / 100.0;
 
   double get co2Value => (leitura?.co2Num ?? 0).clamp(0, 5000) / 5000.0;
 
   @override
   void dispose() {
     _timer?.cancel();
+    _isDisposed = true;
     super.dispose();
+  }
+
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   DateTime _parseDateTime(String? value) {
