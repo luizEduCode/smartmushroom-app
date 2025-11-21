@@ -9,6 +9,10 @@ class ApiConfig {
   static String get baseUrl {
     final savedIp = _storage.read<String>('server_ip');
     final ip = (savedIp == null || savedIp.isEmpty) ? _defaultIp : savedIp;
-    return 'http://$ip/smartmushroom-api/';
+
+    final hasProtocol = ip.startsWith('http://') || ip.startsWith('https://');
+    final base = hasProtocol ? ip : 'http://$ip';
+
+    return '$base/smartmushroom-api/';
   }
 }
