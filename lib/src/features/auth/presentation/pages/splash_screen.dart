@@ -62,13 +62,24 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isLight = theme.brightness == Brightness.light;
+    final Color logoColor =
+        isLight ? theme.colorScheme.primary : Colors.white;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: ScaleTransition(
           scale: _scaleAnimation,
-          child: Center(child: Image.asset('assets/logoG.png', width: 350)),
+          child: Center(
+            child: Image.asset(
+              'assets/logoG.png',
+              width: 350,
+              color: logoColor,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+          ),
         ),
       ),
     );

@@ -83,29 +83,34 @@ class AppMenuDrawer extends StatelessWidget {
                                     color: connectionColor,
                                   ),
                                   const SizedBox(width: 6),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        connectionLabel,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      Text(
-                                        connectionDetail,
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              color: colorScheme
-                                                  .onSurfaceVariant
-                                                  .withValues(alpha: 0.85),
-                                            ),
-                                      ),
-                                    ],
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          connectionLabel,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color:
+                                                    colorScheme
+                                                        .onSurfaceVariant,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        Text(
+                                          connectionDetail,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant
+                                                    .withValues(alpha: 0.85),
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -131,7 +136,9 @@ class AppMenuDrawer extends StatelessWidget {
                                   isDarkMode
                                       ? Icons.dark_mode
                                       : Icons.light_mode;
-                              final Color iconColor = colorScheme.primary;
+                              final Color iconColor = isDarkMode
+                                  ? colorScheme.onSurface
+                                  : colorScheme.primary;
                               final Color themeCardColor =
                                   isDarkMode
                                       ? colorScheme.surfaceContainerHighest
@@ -173,7 +180,7 @@ class AppMenuDrawer extends StatelessWidget {
                                     ),
                                     Switch.adaptive(
                                       value: isDarkMode,
-                                      activeThumbColor: colorScheme.primary,
+                                      activeThumbColor: colorScheme.onPrimary,
                                       onChanged:
                                           (_) => themeViewModel.toggleTheme(),
                                     ),
@@ -203,7 +210,9 @@ class AppMenuDrawer extends StatelessWidget {
                               children: [
                                 _IconBadge(
                                   icon: Icons.route_outlined,
-                                  color: colorScheme.primary,
+                                  color: theme.brightness == Brightness.dark
+                                      ? colorScheme.onSurface
+                                      : colorScheme.primary,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -334,17 +343,20 @@ class _MenuCard extends StatelessWidget {
     final theme = Theme.of(context);
     final borderRadius = BorderRadius.circular(24);
     final colorScheme = theme.colorScheme;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 12),
+                ),
+              ],
       ),
       child: Material(
         color: backgroundColor ?? colorScheme.surfaceContainerHigh,

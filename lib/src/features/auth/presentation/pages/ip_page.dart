@@ -13,6 +13,19 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
   late final TextEditingController _ipController;
   final GetStorage _storage = GetStorage();
 
+  bool _isValidEndpoint(String input) {
+    final value = input.trim();
+    if (value.isEmpty) return false;
+
+    final uri = Uri.tryParse(value);
+    if (uri != null && uri.hasScheme) {
+      return uri.host.isNotEmpty;
+    }
+
+    final hostPort = RegExp(r'^[\w.-]+(:\d+)?$');
+    return hostPort.hasMatch(value);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -29,7 +42,7 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Configurar IP'),
+      appBar: const CustomAppBar(title: 'Configurar servidor'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -37,8 +50,8 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
             TextField(
               controller: _ipController,
               decoration: const InputDecoration(
-                labelText: 'IP do Servidor',
-                hintText: 'Ex: 192.168.1.100',
+                labelText: 'IP ou link do servidor',
+                hintText: 'Ex: 192.168.1.100 ou https://meu-app.ngrok.io',
               ),
             ),
             const SizedBox(height: 24),
@@ -48,9 +61,12 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
                 onPressed: () {
                   final ip = _ipController.text.trim();
                   final messenger = ScaffoldMessenger.of(context);
-                  if (ip.isEmpty) {
+                  if (!_isValidEndpoint(ip)) {
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Informe um IP válido.')),
+                      const SnackBar(
+                        content:
+                            Text('Informe um IP ou link do ngrok valido.'),
+                      ),
                     );
                     return;
                   }
@@ -58,7 +74,7 @@ class _ConfigIPPageState extends State<ConfigIPPage> {
                   Navigator.of(context).pop(ip);
                 },
                 icon: const Icon(Icons.save),
-                label: const Text("Salvar IP"),
+                label: const Text("Salvar endereco"),
               ),
             ),
           ],
